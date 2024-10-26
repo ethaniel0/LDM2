@@ -1,0 +1,191 @@
+// BASIC TYPES
+
+type bool (
+    %initialize {typed bool value}%
+    %method(bool not) %
+)
+
+type int (
+    %initialize {typed $number value}%
+    %method(bool isEven)%
+    %method(float sqrt)
+        {arg optional int base}
+    %
+)
+
+type int8 is int ()
+
+type float (
+    %initialize {typed $number value}%
+)
+
+
+// KEYWORDS
+keyword for (
+    %structure 
+        for {typename typename is int} {name var} in {typed int start} .. {typed int end} %optional ..{typed int step}% {block block}
+    %
+)
+
+keyword if (
+    %structure
+        if {expression expr} {block block}
+    %
+)
+
+keyword elif (
+    %structure
+        %after(keyword if) elif {expression expr} {block block} %
+    %
+)
+
+keyword else (
+    %structure
+        %after(keyword if or keyword elif) 
+            else {expression expr} {block block}
+        %
+    %
+)
+
+keyword while (
+    %structure
+        while {expression expr} {block block}
+    %
+)
+
+// VARIABLE DEFINITIONS
+
+make_variable (
+    %structure
+        {typename typename} {name varname} %optional = {expression expr}%
+    %
+)
+
+// EXPRESSION DELIMITER
+expression_delimiter (
+    %char ;%
+)
+
+// OPERATORS
+
+
+promotion_rule int_to_float (
+    %from int to float%
+    %from int to double%
+    %from float to double%
+)
+
+operator + (
+    %precedence 8 %
+    %structure {expression left is int} + {expression right is int} %
+    %structure {expression left is float} + {expression right is float} %
+    %structure {expression left is float} + {expression right is int} %
+    %structure {expression left is int} + {expression right is float} %
+
+    %returns infer_type(left, right) %
+    %promotion int_to_float%
+)
+
+operator - (
+    %precedence 8 %
+    %structure {expression left is int} - {expression right is int} %
+    %structure {expression left is float} - {expression right is float} %
+    %structure {expression left is float} - {expression right is int} %
+    %structure {expression left is int} - {expression right is float} %
+
+    %returns infer_type(left, right) %
+    %promotion int_to_float%
+)
+
+operator * (
+    %precedence 9 %
+    %structure {expression left is int} * {expression right is int} %
+    %structure {expression left is float} * {expression right is float} %
+    %structure {expression left is float} * {expression right is int} %
+    %structure {expression left is int} * {expression right is float} %
+
+    %returns infer_type(left, right) %
+    %promotion int_to_float%
+)
+
+operator / (
+    %precedence 8 %
+    %structure {expression left is int} / {expression right is int} %
+    %structure {expression left is float} / {expression right is float} %
+    %structure {expression left is float} / {expression right is int} %
+    %structure {expression left is int} / {expression right is float} %
+
+    %returns float %
+    %promotion int_to_float%
+)
+
+operator - (
+    %precedence 10 %
+    %structure -{expression right is int} %
+    %structure -{expression right is float} %
+    %returns infer_type(right) %
+)
+
+operator < (
+    %precedence 5 %
+    %structure {expression left} < {expression right} %
+    %returns type bool %
+)
+
+operator > (
+    %precedence 5 %
+    %structure {expression left} > {expression right} %
+    %returns type bool %
+)
+
+operator += (
+    %precedence 1 %
+    %structure {name name} += {expression right} %
+    %returns none %
+)
+
+operator -= (
+    %precedence 1 %
+    %structure {name name} -= {expression right} %
+    %returns none %
+)
+
+operator <= (
+    %precedence 1 %
+    %structure {name name} <= {expression right} %
+    %returns type bool %
+)
+
+operator >= (
+    %precedence 1 %
+    %structure {name name} >= {expression right} %
+    %returns type bool %
+)
+
+operator = (
+    %precedence 1 %
+    %structure {name name} = {expression right} %
+    %returns none %
+)
+
+operator ? (
+    %precedence 1 %
+    %structure %before(operator :) {expression source is bool} ? {expression option1 is bool}% %
+    %returns var option1 %
+)
+
+operator : (
+    %precedence 1 %
+    %structure 
+        %after(operator ?) : {value option2} % 
+    %
+    %returns var option2 %
+)
+
+operator await (
+    %precedence 10 %
+    %structure
+        await {expression right}
+    %
+    %returns right_type %
+)

@@ -1,0 +1,83 @@
+[
+  {
+    "type": "primitive_type",
+    "name": "bool",
+    "initialize": {
+      "constructor": false,
+      "type": "bool"
+    },
+    "is": "",
+    "methods": [
+      {
+        "name": "not",
+        "arguments": [],
+        "returns": "bool"
+      }
+    ]
+  },
+  {
+    "type": "primitive_type",
+    "name": "int",
+    "initialize": {
+        "constructor": false,
+        "type": "$number"
+    },
+    "is": "",
+    "methods": [
+      {
+        "name": "isEven",
+        "arguments": [],
+        "returns": "bool"
+      },
+      {
+        "name": "sqrt",
+        "arguments": [{
+          "name": "base",
+          "type": "int",
+          "optional": true
+        }],
+        "returns": "float"
+      }
+    ]
+  },
+  {
+    "type": "primitive_type",
+    "name": "int8",
+    "initialize": {
+        "type": "$number"
+    },
+    "is": "int",
+    "methods": []
+  },
+
+  {
+    "type": "make_variable",
+    "name": "standard",
+    "components": [
+      {
+        "base": "typename",
+        "name": "typename"
+      },
+      {
+        "base": "name",
+        "name": "varname",
+        "type": "new-scoped"
+      },
+      {
+        "base": "expression",
+        "name": "expr"
+      }
+    ]
+  },
+
+  {
+    "type": "value_keyword",
+    "name": "true",
+    "value_type": "bool"
+  },
+  {
+    "type": "value_keyword",
+    "name": "false",
+    "value_type": "bool"
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "typed": "^typed\\s+(\\$?\\w+)\\s+\\w+$",
+  "arg": "^arg(?:\\s+optional)?\\s+\\w+\\s+\\w+$",
+  "typename": "^typename\\s+\\w+(?:\\s+is\\s+\\w+)?$",
+  "expression": "^expression\\s+\\w+(?:\\s+is\\s+\\w+)?$",
+  "block": "^block\\s+\\w+$",
+  "name": "^name\\s+\\w+$"
+}

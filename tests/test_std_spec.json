@@ -1,0 +1,122 @@
+[
+  {
+    "type": "primitive_type",
+    "name": "bool",
+    "initialize": {
+      "constructor": false,
+      "type": "bool"
+    },
+    "is": "",
+    "methods": [
+      {
+        "name": "not",
+        "arguments": [],
+        "returns": "bool"
+      }
+    ]
+  },
+  {
+    "type": "primitive_type",
+    "name": "int",
+    "initialize": {
+      "constructor": false,
+      "type": "$int"
+    },
+    "is": "",
+    "methods": [
+      {
+        "name": "isEven",
+        "arguments": [],
+        "returns": "bool"
+      },
+      {
+        "name": "sqrt",
+        "arguments": [{
+          "name": "base",
+          "type": "int",
+          "optional": true
+        }],
+        "returns": "float"
+      }
+    ]
+  },
+  {
+    "type": "primitive_type",
+    "name": "int8",
+    "initialize": {
+        "type": "$int"
+    },
+    "is": "int",
+    "methods": []
+  },
+  {
+    "type": "primitive_type",
+    "name": "float",
+    "initialize": {
+      "constructor": false,
+      "type": "$float"
+    },
+    "is": "",
+    "methods": [
+      {
+        "name": "sqrt",
+        "arguments": [{
+          "name": "base",
+          "type": "int",
+          "optional": true
+        }],
+        "returns": "float"
+      }
+    ]
+  },
+
+  {
+    "type": "make_variable",
+    "name": "standard",
+    "components": [
+      {
+        "base": "typename",
+        "name": "typename"
+      },
+      {
+        "base": "name",
+        "name": "varname",
+        "type": "new-local"
+      },
+      {
+        "base": "expression",
+        "name": "expr"
+      }
+    ]
+  },
+
+  {
+    "type": "value_keyword",
+    "name": "true",
+    "value_type": "bool"
+  },
+  {
+    "type": "value_keyword",
+    "name": "false",
+    "value_type": "bool"
+  },
+
+
+  {
+    "type": "operator",
+    "name": "+",
+    "precedence": 8,
+    "structures": [
+      {
+        "ints": [
+          { "name": "left", "type": "expression", "is": "int" },
+          { "name": "right", "type": "expression", "is": "int" }
+        ],
+        "floats": [
+            { "name": "left", "type": "expression", "is": "float" },
+            { "name": "right", "type": "expression", "is": "float" }
+        ]
+      }
+    ]
+  }
+]

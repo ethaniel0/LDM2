@@ -1,0 +1,20 @@
+{
+  "from": {
+    "inner": "^\\s+(.+?)\\s+to\\s+(.+)$"
+  },
+  "char": {
+    "inner": "^.$"
+  },
+  "structure": {
+    "inner": ".*"
+  },
+  "promotion": {
+    "inner":  "\\w+"
+  },
+  "precedence": {
+    "inner":  "\\d+"
+  },
+  "returns": {
+    "inner": "^\\w+$|^infer_type\\(\\s*\\w+(?:\\s*,\\s*\\w+)*\\s*\\)$"
+  }
+}

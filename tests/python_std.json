@@ -1,0 +1,39 @@
+[
+  {
+    "type": "expression_separator",
+    "name": "expression_separator",
+    "translate": "\n"
+  },
+  {
+    "type": "value_keyword",
+    "name": "true",
+    "translate": "True"
+  },
+  {
+    "type": "value_keyword",
+    "name": "false",
+    "translate": "False"
+  },
+
+  {
+    "type": "primitive_type",
+    "name": "bool",
+    "translate": "bool"
+  },
+  {
+    "type": "primitive_type",
+    "name": "int",
+    "translate": "int"
+  },
+  {
+    "type": "primitive_type",
+    "name": "int8",
+    "translate": "int"
+  },
+
+  {
+    "type": "make_variable",
+    "name": "standard",
+    "translate": "$varname: $typename = $expr"
+  }
+]

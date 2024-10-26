@@ -1,0 +1,39 @@
+// BASIC TYPES
+type int (
+    %method(bool isEven)%
+)
+
+
+// KEYWORDS
+keyword for (
+    %structure
+        for {typename typename is int} {name var} in {typed int start} %optional ..{typed int step}% {block block}
+    %
+)
+
+keyword else (
+    %structure
+        %after(keyword if or keyword elif)
+            else {expression expr} {block block}
+        %
+    %
+)
+
+// VARIABLE DEFINITIONS
+make_variable (
+    %structure
+        {typename typename} {name varname} %optional = {expression expr}%
+    %
+)
+
+// EXPRESSION DELIMITER
+expression_delimiter (
+    %char ;%
+)
+
+// OPERATORS
+operator + (
+    %precedence 8 %
+    %structure {expression left} + {expression right} %
+    %returns left_type %
+)

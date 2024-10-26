@@ -1,0 +1,7 @@
+[
+  {
+    "type": "make_variable",
+    "name": "standard",
+    "structure": "$typename $varname = $expr"
+  }
+]
