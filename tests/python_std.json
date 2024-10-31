@@ -35,5 +35,32 @@
     "type": "make_variable",
     "name": "standard",
     "translate": "$varname: $typename = $expr"
+  },
+
+  {
+    "type": "operator",
+    "name": "+",
+    "translate": "$left + $right"
+  },
+
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "int", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "float", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "int", "right": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "float", "right": "int"
   }
 ]

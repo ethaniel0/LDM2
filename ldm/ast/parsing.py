@@ -110,8 +110,6 @@ def parse(tokens: list[Token], parsing_items: ParsingItems, tokenizer_items: Tok
     mv = mvs[list(mvs.keys())[0]]
     mv_structure = mv.structure
 
-    print('structure', mv_structure.component_defs)
-
     ast_nodes = []
     while not iterator.done():
         node = parse_structure(iterator, mv_structure, parsing_items, context, tokenizer_items)

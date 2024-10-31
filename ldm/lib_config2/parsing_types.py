@@ -52,10 +52,42 @@ class MakeVariable:
 
 
 @dataclass
+class OperatorOverload:
+    name: str
+    return_type: str
+    variables: dict[str, str]
+    
+    def __str__(self):
+        return f"<{self.name}|{self.variables.values()}>"
+    
+    
+@dataclass
+class Operator:
+    name: str
+    precedence: int
+    structure: Structure
+    overloads: list[OperatorOverload]
+    
+    def overload_matches(self, overload: OperatorOverload):
+        # Get all variable names from structure components
+        structure_vars = set()
+        for comp in self.structure.component_specs.values():
+            if comp.base == "operator_value":
+                structure_vars.add(comp.name)
+        
+        overload_vars = set(overload.variables.keys())
+                
+        # Check if all variables in overload exist in structure
+        return structure_vars == overload_vars
+
+
+@dataclass
 class Spec:
     primitive_types: dict[str, PrimitiveType]
     make_variables: dict[str, MakeVariable]
     initializer_formats: dict[str, InitializationSpec]
+    operators: dict[str, Operator]
+    
 
 
 # DEFINITIONS

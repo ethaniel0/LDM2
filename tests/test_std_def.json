@@ -3,5 +3,11 @@
     "type": "make_variable",
     "name": "standard",
     "structure": "$typename $varname = $expr"
+  },
+
+  {
+    "type": "operator",
+    "name": "+",
+    "structure": "$left + $right"
   }
 ]

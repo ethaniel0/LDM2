@@ -31,5 +31,14 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
                     raise ValueError(f"Make variable {comp_name} already has a definition")
                 components = parse_structure_into_components(arg['structure'])
                 spec.make_variables[comp_name].structure.component_defs = components
+                
+            case 'operator':
+                if comp_name not in spec.operators:
+                    raise ValueError(f"Operator {comp_name} not found")
+                if len(spec.operators[comp_name].structure.component_defs) > 0:
+                    raise ValueError(f"Operator {comp_name} already has a definition")
+                components = parse_structure_into_components(arg['structure'])
+                spec.operators[comp_name].structure.component_defs = components
+                
             case _:
                 raise ValueError(f"Unknown component type {comp_type}")

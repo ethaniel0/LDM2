@@ -79,9 +79,33 @@ def build_init_formats_from_type_tree(type_tree_roots: list[TypeTreeNode]) -> di
     return init_formats
 
 
+def parse_operator(arg: dict[str, any]) -> Operator:
+    name = arg['name']
+    precedence = arg['precedence']
+    components = {}
+    for item in arg['components']:
+        s = StructureSpecComponent('operator_value', item['name'], {})
+        components[item['name']] = s
+    structure = Structure(components, [])
+    return Operator(name, precedence, structure, [])
+
+
+def parse_operator_overload(arg: dict[str, any]) -> OperatorOverload:
+    name = arg['name']
+    return_type = arg['return']
+    other = {}
+    for i in arg.keys():
+        if i != 'name' and i != 'return' and i != 'type':
+            other[i] = arg[i]
+    
+    return OperatorOverload(name, return_type, other)
+
+
 def parse_spec(arg: list[dict[str, any]]) -> Spec:
     primitive_types: dict[str, PrimitiveType] = {}
     make_variables: dict[str, MakeVariable] = {}
+    operators: dict[str, Operator] = {}
+    operator_overloads: list[OperatorOverload] = []
 
     for item in arg:
         match item['type']:
@@ -97,9 +121,23 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
 
             case 'make_variable':
                 make_variables[item['name']] = parse_make_variable(item)
+                
+            case 'operator':
+                operators[item['name']] = parse_operator(item)
+            
+            case 'operator_overload':
+                operator_overloads.append(parse_operator_overload(item))
 
             case _:
                 raise ValueError(f"Unknown type {item['type']}")
+    
+    for overload in operator_overloads:
+        if overload.name not in operators:
+            raise ValueError(f'type {overload.name} does not exist for overload to connect to')
+        op = operators[overload.name]
+        if not op.overload_matches(overload):
+            raise ValueError(f'operator overload {overload} does not match operator structure for operator {op.name}')
+        op.overloads.append(overload)        
 
     # build type tree
     type_tree_roots = build_type_tree(primitive_types)
@@ -115,4 +153,4 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
                                                             InitializationType.LITERAL,
                                                             keyword.name)
 
-    return Spec(primitive_types, make_variables, init_formats)
+    return Spec(primitive_types, make_variables, init_formats, operators)

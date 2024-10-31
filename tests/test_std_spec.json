@@ -71,6 +71,17 @@
   },
 
   {
+    "type": "primitive_type",
+    "name": "string",
+    "initialize": {
+      "constructor": false,
+      "type": "$string"
+    },
+    "is": "",
+    "methods": []
+  },
+
+  {
     "type": "make_variable",
     "name": "standard",
     "components": [
@@ -106,17 +117,40 @@
     "type": "operator",
     "name": "+",
     "precedence": 8,
-    "structures": [
-      {
-        "ints": [
-          { "name": "left", "type": "expression", "is": "int" },
-          { "name": "right", "type": "expression", "is": "int" }
-        ],
-        "floats": [
-            { "name": "left", "type": "expression", "is": "float" },
-            { "name": "right", "type": "expression", "is": "float" }
-        ]
-      }
+    "components": [
+          {"name": "left"},
+          {"name": "right"}
     ]
+  },
+
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "int", "right": "int", "return": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "int", "right": "float", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "float", "right": "int", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "float", "right": "float", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "string", "right": "int", "return": "string"
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "string", "right": "int", "return": "string"
   }
 ]
