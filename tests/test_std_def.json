@@ -8,6 +8,8 @@
   {
     "type": "operator",
     "name": "+",
-    "structure": "$left + $right"
+    "structure": "$left + $right",
+    "trigger": "+",
+    "associativity": "left-to-right"
   }
 ]

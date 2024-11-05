@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec
+from ldm.lib_config2.parsing_types import Spec, Operator
 
 
 class TokenIterator:
@@ -83,3 +83,17 @@ class MakeVariableInstance:
         self.varname = structure['varname']
         self.expr = structure['expr']
         self.name = name
+
+
+@dataclass
+class OperatorInstance:
+    operator: Operator
+    operands: list  # List of parsed operands, each either a ValueToken or another OperatorInstance
+    result_type: str
+
+
+@dataclass
+class ValueToken:
+    value: Token  # This could be a literal or variable name, depending on your language
+    var_type: str
+

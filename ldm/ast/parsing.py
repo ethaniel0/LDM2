@@ -1,8 +1,7 @@
 from __future__ import annotations
 from ldm.lib_config2.parsing_types import Structure, StructureComponentType
-from ldm.source_tokenizer.tokenize import tokenize, TokenizerItems, TokenType
+from ldm.source_tokenizer.tokenize import TokenizerItems, TokenType, Tokenizer
 from ldm.ast.parsing_types import *
-from ldm.errors.LDMError import error
 
 
 def parse_expression(tokens: TokenIterator, items: ParsingItems):
@@ -12,9 +11,13 @@ def parse_expression(tokens: TokenIterator, items: ParsingItems):
     :param items: parsing items
     :return: Expression token
     """
+    
+    expression_tokens = []
+    
     t, ind = next(tokens)
     val: str = t.type.value[0]
 
+    # variable, function name, or value keyword
     if t.type == TokenType.Identifier:
         val = t.value
 
@@ -85,7 +88,7 @@ def parse_structure(tokens: TokenIterator,
                 raise RuntimeError(f'base {var.base} not recognized')
 
         elif s.component_type == StructureComponentType.String:
-            string_tokens = tokenize(s.value, tokenizer_items)
+            string_tokens = Tokenizer(tokenizer_items).tokenize(s.value)
             for token in string_tokens:
                 tn, _ = next(tokens)
                 if tn.value != token.value:

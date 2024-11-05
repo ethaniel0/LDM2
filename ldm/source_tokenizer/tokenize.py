@@ -1,153 +1,176 @@
 from .tokenizer_types import Token, TokenType
-from ldm.lib_config2.parsing_types import PrimitiveType
+from ldm.lib_config2.parsing_types import PrimitiveType, Operator
 from dataclasses import dataclass
 
 
 @dataclass
 class TokenizerItems:
-    primitive_types: list[PrimitiveType]
+    primitive_types: dict[str, PrimitiveType]
+    operators: dict[str, Operator]
 
 
-def tokenize(source: str, items: TokenizerItems) -> list[Token]:
-    tokens = []
+class Tokenizer:
+    def __init__(self, items: TokenizerItems):
+        self.items = items
+        self.source = ""
+        self.tokens = []
 
-    in_str = False
-    in_number = False
-    in_float = False
-    in_identifier = False
-    in_operator = False
-    running_str = ""
+        self.in_str = False
+        self.in_number = False
+        self.in_float = False
+        self.in_identifier = False
+        self.in_operator = False
+        self.running_str = ""
 
-    def reset_state():
-        nonlocal in_str, in_number, in_float, in_identifier, in_operator, running_str
-        in_str = False
-        in_number = False
-        in_float = False
-        in_identifier = False
-        in_operator = False
-        running_str = ""
+        self.index = 0
+        self.line = 1
 
-    index = 0
-    line = 0
+        self.NUMBERS = "1234567890"
+        self.ALPHABET = "_qwertyuiopasdfghjklzxcvbnmQWERTYUIOOPLKJHGFDSAZXCVBNM"
+        self.WHITESPACE = " \t\n\r"
 
-    numbers = "1234567890"
-    alphabet = "_qwertyuiopasdfghjklzxcvbnmQWERTYUIOOPLKJHGFDSAZXCVBNM"
-    whitespace = " \t\n"
+        self.char_ind = 0
 
-    char_ind = 0
+    def __add_bracket(self, c: str):
+        match c:
+            case '{':
+                self.tokens.append(Token(TokenType.LBRACKET, c, self.line))
+            case '}':
+                self.tokens.append(Token(TokenType.RBRACKET, c, self.line))
+            case '(':
+                self.tokens.append(Token(TokenType.LPAREN, c, self.line))
+            case ')':
+                self.tokens.append(Token(TokenType.RPAREN, c, self.line))
 
-    while char_ind < len(source):
-        c = source[char_ind]
-        char_ind += 1
+    def __handle_str(self, c: str):
+        if c == "\"":
+            self.tokens.append(Token(TokenType.String, self.running_str, self.line))
+            self.__reset_state()
+        elif c == '\n' or c == '\0':
+            raise ValueError(f"Unexpected newline in string at line {self.line - 1}")
+        else:
+            self.running_str += c
+
+    def __handle_number(self, c: str):
+        if c in self.NUMBERS:
+            self.running_str += c
+        elif c == '.':
+            if self.in_float:
+                raise ValueError(f"Unexpected . in number at line {self.line - 1}")
+            self.in_float = True
+            self.running_str += c
+        elif c in self.ALPHABET:
+            raise ValueError(f"Unexpected character in number at line {self.line - 1}")
+        else:
+            num_type = TokenType.Float if self.in_float else TokenType.Integer
+            self.tokens.append(Token(num_type, self.running_str, self.line))
+            self.__reset_state()
+            self.char_ind -= 1
+
+    def __get_identifier_type(self):
+        # check is primitive type
+        if self.running_str in self.items.primitive_types:
+            return TokenType.PrimitiveType
+
+        # check is operator
+        is_operator = any(o.trigger == self.running_str for o in self.items.operators.values())
+        if is_operator:
+            return TokenType.Operator
+
+        # check is value keyword
+        for pt in self.items.primitive_types.values():
+            for vk in pt.value_keywords:
+                if vk.name == self.running_str:
+                    return TokenType.ValueKeyword
+
+        return TokenType.Identifier
+
+    def __handle_identifier(self, c: str):
+        if c in self.ALPHABET or c in self.NUMBERS:
+            self.running_str += c
+            return
+
+        token_type = self.__get_identifier_type()
+
+        self.tokens.append(Token(token_type, self.running_str, self.line))
+        self.__reset_state()
+        self.char_ind -= 1
+
+    def __handle_operator(self, c: str):
+        if c != '\0' and c not in self.ALPHABET and c not in self.NUMBERS and c not in self.WHITESPACE:
+            self.running_str += c
+        else:
+            self.tokens.append(Token(TokenType.Operator, self.running_str, self.line))
+            self.__reset_state()
+            self.char_ind -= 1
+
+    def eat(self, c: str):
+        self.char_ind += 1
         if c == "\n":
-            line += 1
-            index = 0
-        index += 1
-        if len(running_str) == 0:
-            if c in whitespace:
-                continue
+            self.line += 1
+            self.index = 0
+        self.index += 1
+
+        if len(self.running_str) == 0:
+            if c in self.WHITESPACE:
+                return
             if c == "\"":
-                in_str = True
-                continue
-            if c in numbers:
-                in_number = True
-                running_str += c
-                continue
-            if c in alphabet:
-                in_identifier = True
-                running_str += c
-                continue
+                self.in_str = True
+                return
+            if c in self.NUMBERS:
+                self.in_number = True
+                self.running_str += c
+                return
+            if c in self.ALPHABET:
+                self.in_identifier = True
+                self.running_str += c
+                return
             if c in '{}()':
-                match c:
-                    case '{':
-                        tokens.append(Token(TokenType.LBRACKET, c, line))
-                    case '}':
-                        tokens.append(Token(TokenType.RBRACKET, c, line))
-                    case '(':
-                        tokens.append(Token(TokenType.LPAREN, c, line))
-                    case ')':
-                        tokens.append(Token(TokenType.RPAREN, c, line))
-                continue
+                self.__add_bracket(c)
+                return
 
-            running_str += c
-            in_operator = True
-            continue
+            self.running_str += c
+            self.in_operator = True
+            return
 
-        if in_str:
-            if c == "\"":
-                tokens.append(Token(TokenType.String, running_str, line))
-                reset_state()
-            elif c == '\n':
-                raise ValueError(f"Unexpected newline in string at line {line-1}")
-            else:
-                running_str += c
-            continue
+        if self.in_str:
+            self.__handle_str(c)
 
-        elif in_number:
-            if c in numbers:
-                running_str += c
-            elif c == '.':
-                if in_float:
-                    raise ValueError(f"Unexpected . in number at line {line-1}")
-                in_float = True
-                running_str += c
-            elif c in alphabet:
-                raise ValueError(f"Unexpected character in number at line {line-1}")
-            else:
-                num_type = TokenType.Float if in_float else TokenType.Integer
-                tokens.append(Token(num_type, running_str, line))
-                reset_state()
-                char_ind -= 1
-            continue
+        elif self.in_number:
+            self.__handle_number(c)
 
-        elif in_identifier:
-            if c in alphabet or c in numbers:
-                running_str += c
-            else:
-                is_primitive_type = any([pt.name == running_str for pt in items.primitive_types])
-                is_identifier = False
-                if not is_primitive_type:
-                    is_identifier = True
+        elif self.in_identifier:
+            self.__handle_identifier(c)
 
-                token_type = TokenType.Identifier
-                if is_primitive_type:
-                    token_type = TokenType.PrimitiveType
-                elif is_identifier:
-                    token_type = TokenType.Identifier
+        elif self.in_operator:
+            self.__handle_operator(c)
 
-                tokens.append(Token(token_type, running_str, line))
-                reset_state()
-                char_ind -= 1
-            continue
+        else:
+            raise ValueError("Invalid state?")
 
-        elif in_operator:
-            if c not in alphabet and c not in numbers and c not in whitespace:
-                running_str += c
-            else:
-                tokens.append(Token(TokenType.Operator, running_str, line))
-                reset_state()
-                char_ind -= 1
-            continue
+    def tokenize(self, source: str):
+        self.__reset_state()
+        self.tokens = []
+        self.line = 1
+        self.index = 0
+        self.char_ind = 0
+        self.source = source
 
-    if in_str:
-        raise ValueError(f"Unterminated string at line {line-1}")
-    if in_number:
-        num_type = TokenType.Float if in_float else TokenType.Integer
-        tokens.append(Token(num_type, running_str, line))
-    if in_identifier:
-        is_primitive_type = any([pt.name == running_str for pt in items.primitive_types])
-        is_identifier = False
-        if not is_primitive_type:
-            is_identifier = True
+        for c in source:
+            self.eat(c)
 
-        token_type = TokenType.Identifier
-        if is_primitive_type:
-            token_type = TokenType.Type
-        elif is_identifier:
-            token_type = TokenType.Identifier
+        return self.finish()
 
-        tokens.append(Token(token_type, running_str, line))
-    if in_operator:
-        tokens.append(Token(TokenType.Operator, running_str, line))
+    def finish(self):
+        if self.in_str:
+            raise ValueError(f"Unterminated string at line {self.line - 1}")
+        self.eat('\0')
+        return self.tokens
 
-    return tokens
+    def __reset_state(self):
+        self.in_str = False
+        self.in_number = False
+        self.in_float = False
+        self.in_identifier = False
+        self.in_operator = False
+        self.running_str = ""

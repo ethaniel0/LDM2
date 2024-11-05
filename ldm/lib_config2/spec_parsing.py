@@ -87,7 +87,7 @@ def parse_operator(arg: dict[str, any]) -> Operator:
         s = StructureSpecComponent('operator_value', item['name'], {})
         components[item['name']] = s
     structure = Structure(components, [])
-    return Operator(name, precedence, structure, [])
+    return Operator(name, precedence, structure, [], "", Associativity.NONE)
 
 
 def parse_operator_overload(arg: dict[str, any]) -> OperatorOverload:

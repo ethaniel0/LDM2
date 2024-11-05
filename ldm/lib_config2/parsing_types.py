@@ -59,15 +59,23 @@ class OperatorOverload:
     
     def __str__(self):
         return f"<{self.name}|{self.variables.values()}>"
-    
-    
+
+
+class Associativity(Enum):
+    LEFT_TO_RIGHT = 0
+    RIGHT_TO_LEFT = 1
+    NONE = 2
+
+
 @dataclass
 class Operator:
     name: str
     precedence: int
     structure: Structure
     overloads: list[OperatorOverload]
-    
+    trigger: str
+    associativity: Associativity
+
     def overload_matches(self, overload: OperatorOverload):
         # Get all variable names from structure components
         structure_vars = set()
