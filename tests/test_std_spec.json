@@ -19,7 +19,6 @@
     "type": "primitive_type",
     "name": "int",
     "initialize": {
-      "constructor": false,
       "type": "$int"
     },
     "is": "",
@@ -53,7 +52,6 @@
     "type": "primitive_type",
     "name": "float",
     "initialize": {
-      "constructor": false,
       "type": "$float"
     },
     "is": "",
@@ -74,7 +72,6 @@
     "type": "primitive_type",
     "name": "string",
     "initialize": {
-      "constructor": false,
       "type": "$string"
     },
     "is": "",

@@ -14,11 +14,41 @@ def parse_primitive_type_initialize(arg: dict[str, any]) -> PrimitiveTypeInitial
     return PrimitiveTypeInitialize(arg['type'])
 
 
+def string_to_typespec(arg: str) -> TypeSpec:
+    if '<' not in arg:
+        return TypeSpec(arg, 0, [])
+    if '>' not in arg:
+        raise ValueError(f"Invalid type spec {arg}")
+    inside_brackets = arg[arg.index('<') + 1:arg.rindex('>')].strip()
+    # parse recursively, but allow for a list of types
+    # can't just split "," because of nested types
+    types = []
+    start = 0
+    depth = 0
+    for i, c in enumerate(inside_brackets):
+        if c == '<':
+            depth += 1
+        elif c == '>':
+            depth -= 1
+        elif c == ',' and depth == 0:
+            types.append(string_to_typespec(inside_brackets[start:i].strip()))
+            start = i + 1
+
+    if start != len(inside_brackets):
+        types.append(string_to_typespec(inside_brackets[start:].strip()))
+
+    return TypeSpec(arg[:arg.index('<')], len(types), types)
+
+
 def parse_primitive_type(arg: dict[str, any]) -> PrimitiveType:
     methods = [parse_method(m) for m in arg['methods']]
     init = parse_primitive_type_initialize(arg['initialize'])
-    superclass = arg['is']
-    return PrimitiveType(arg['name'], methods, init, [], superclass)
+    if 'is' in arg and arg['is']:
+        superclass = string_to_typespec(arg['is'])
+    else:
+        superclass = None
+    typespec = TypeSpec(arg['name'], 0, [])
+    return PrimitiveType(typespec, superclass, methods, init, [])
 
 
 def parse_value_keyword(arg: dict[str, any]) -> ValueKeyword:
@@ -46,10 +76,10 @@ def build_type_tree(primitive_types: dict[str, PrimitiveType]) -> list[TypeTreeN
 
     for pt in primitive_types.values():
         if pt.superclass:
-            if pt.superclass not in type_tree:
-                raise ValueError(f"Superclass {pt.superclass} not found for type {pt.name}")
-            type_tree[pt.superclass].children.append(type_tree[pt.name])
-            type_tree[pt.name].parent = type_tree[pt.superclass]
+            if pt.superclass.name not in type_tree:
+                raise ValueError(f"Superclass {pt.superclass} not found for type {pt.spec.name}")
+            type_tree[pt.superclass.name].children.append(type_tree[pt.spec.name])
+            type_tree[pt.spec.name].parent = type_tree[pt.superclass.name]
 
     roots = [v for v in type_tree.values() if v.parent is None]
     return roots
@@ -62,7 +92,7 @@ def build_init_formats_from_type_tree(type_tree_roots: list[TypeTreeNode]) -> di
         is_var = root.type.initialize.type.startswith('$')
         if is_var:
             t = root.type.initialize.type
-            init_formats[t] = InitializationSpec(root.type.name,
+            init_formats[t] = InitializationSpec(root.type.spec.name,
                                                  InitializationType.VARIABLE,
                                                  root.type.initialize.type)
         q.extend([c for c in root.children])
@@ -72,7 +102,7 @@ def build_init_formats_from_type_tree(type_tree_roots: list[TypeTreeNode]) -> di
         if is_var:
             t = node.type.initialize.type
             if t not in init_formats:
-                init_formats[t] = InitializationSpec(node.type.name,
+                init_formats[t] = InitializationSpec(node.type.spec.name,
                                                      InitializationType.VARIABLE,
                                                      node.type.initialize.type)
         q.extend([c for c in node.children])

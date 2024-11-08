@@ -26,23 +26,24 @@ def load_setup():
 
 
 INT_TYPE = pt.PrimitiveType(
-    name="int", 
+    spec=pt.TypeSpec("int", 0, []),
+    superclass=None,
     methods=[],
     initialize=pt.PrimitiveTypeInitialize("$int"),
-    value_keywords=[],
-    superclass=''
+    value_keywords=[]
 )
 
 FLOAT_TYPE = pt.PrimitiveType(
-    name="float", 
+    spec=pt.TypeSpec("float", 0, []),
+    superclass=None,
     methods=[],
     initialize=pt.PrimitiveTypeInitialize("$float"),
-    value_keywords=[],
-    superclass=''
+    value_keywords=[]
 )
 
 BOOL_TYPE = pt.PrimitiveType(
-    name="bool", 
+    spec=pt.TypeSpec("bool", 0, []),
+    superclass=None,
     methods=[],
     initialize=pt.PrimitiveTypeInitialize("bool"),
     value_keywords=[
@@ -53,7 +54,6 @@ BOOL_TYPE = pt.PrimitiveType(
             name="false", value_type="bool"
         )    
     ],
-    superclass=''
 )
 
 MAKE_VARIABLE = pt.MakeVariable(
@@ -64,11 +64,11 @@ MAKE_VARIABLE = pt.MakeVariable(
                                                   name="typename",
                                                   other={}),
             "varname": pt.StructureSpecComponent(base="name",
-                                              name="varname",
-                                              other={"type": "new-local"}),
+                                                 name="varname",
+                                                 other={"type": "new-local"}),
             "expr": pt.StructureSpecComponent(base="expression",
-                                                  name="expr",
-                                                  other={})
+                                              name="expr",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -191,6 +191,7 @@ SPEC = pt.Spec(
 TOKENIZER_ITEMS = TokenizerItems(SPEC.primitive_types, SPEC.operators)
 TOKENIZER = Tokenizer(TOKENIZER_ITEMS)
 
+
 class MyTestCase(unittest.TestCase):
     
     def test_literal_tokenizing(self):
@@ -250,8 +251,12 @@ class MyTestCase(unittest.TestCase):
         assert mv.typename.value == 'int'
         assert mv.structure['varname'].value == 'x'
         assert mv.varname.value == 'x'
-        assert mv.structure['expr'].value == '5'
-        assert mv.expr.value == '5'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+        assert isinstance(expr, ast_pt.ValueToken)
+        assert expr.value.value == '5'
+        var_expr: ast_pt.ValueToken = mv.expr
+        assert var_expr.value.value == '5'
 
     def test_parsing(self):
         print()

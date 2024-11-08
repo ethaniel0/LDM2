@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator
+from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec
 
 
 class TokenIterator:
@@ -38,7 +38,7 @@ class ParsingItems:
 
 @dataclass
 class ParsingContext:
-    variables: dict[str, str]
+    variables: dict[str, TypeSpec]
     parent: ParsingContext | None
 
     def __init__(self, parent=None):
@@ -55,6 +55,18 @@ class ParsingContext:
             return self.parent.has_global(key)
         return False
 
+    def get_local(self, key):
+        if key in self.variables:
+            return self.variables[key]
+        return None
+
+    def get_global(self, key):
+        if key in self.variables:
+            return self.variables[key]
+        if self.parent is not None:
+            return self.parent.get_global(key)
+        return None
+
 
 class ExpressionToken(Token):
     def __init__(self, token: Token, var_type: str):
@@ -64,13 +76,13 @@ class ExpressionToken(Token):
 
 @dataclass
 class MakeVariableInstance:
-    structure: dict[str, Token]
+    structure: dict[str, Token | ValueToken | OperatorInstance]
     name: str
     typename: Token
     varname: Token
-    expr: Token
+    expr: ValueToken | OperatorInstance
 
-    def __init__(self, name: str, structure: dict[str, Token]):
+    def __init__(self, name: str, structure: dict[str, Token | ValueToken | OperatorInstance]):
         self.structure = structure
         if 'typename' not in structure:
             raise RuntimeError(f'typename variable not found in Make Variable structure "{name}"')
@@ -90,10 +102,12 @@ class OperatorInstance:
     operator: Operator
     operands: list  # List of parsed operands, each either a ValueToken or another OperatorInstance
     result_type: str
+    parse_parent: OperatorInstance | None
 
 
 @dataclass
 class ValueToken:
     value: Token  # This could be a literal or variable name, depending on your language
-    var_type: str
+    var_type: TypeSpec
+    parse_parent: OperatorInstance | None
 

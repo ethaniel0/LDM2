@@ -1,22 +1,90 @@
+from __future__ import annotations
 from ldm.source_tokenizer.tokenize import Token, TokenizerItems, Tokenizer, TokenType
-from ldm.ast.parsing_types import TokenIterator, ParsingItems, ParsingContext, ExpressionToken
-from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent
+from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
+                                   OperatorInstance, ValueToken)
+from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent, TypeSpec
 
 
-def parse_expression(tokens: TokenIterator, items: ParsingItems):
-    t, _ = next(tokens)
-    val: str = t.type.value[0]
+def create_operator_list(token: Token, items: ParsingItems) -> list[OperatorInstance]:
+    if token.type != TokenType.Operator:
+        return []
 
-    if t.type == TokenType.Identifier:
-        val = t.value
+    possible_operators = []
 
-    if val in items.config_spec.initializer_formats:
-        spec = items.config_spec.initializer_formats[val]
-        val_type = spec.ref_type
-    else:
-        val_type = t.type.value[0]
+    for op in items.config_spec.operators.values():
+        if op.trigger == token.value:
+            possible_operators.append(OperatorInstance(op, [], '', None))
 
-    return t, val_type
+    return possible_operators
+
+
+class ExpressionParser:
+    def __init__(self, items: ParsingItems):
+        self.items = items
+        self.stack = []
+        self.workingOperator: ValueToken | OperatorInstance | None = None
+        self.tokens = TokenIterator
+        self.parsing_context = ParsingContext()
+
+    def __parse_operator_structure(self, op_token: Token):
+        ops = create_operator_list(op_token, self.items)
+        if len(ops) == 0:
+            raise RuntimeError(f'Operator {op_token} not found at line {op_token.line}')
+
+        # need to check operator structure to determine which operator to use
+
+
+
+
+
+
+
+
+    def __parse_value(self, token: Token) -> ValueToken:
+        init_formats = self.items.config_spec.initializer_formats
+
+        if token.type == TokenType.Integer:
+            if '$int' in init_formats:
+                ts = TypeSpec(init_formats['$int'].ref_type, 0, [])
+                return ValueToken(token, ts, None)
+            raise RuntimeError(f'No initializer format for int')
+
+        if token.type == TokenType.Float:
+            if '$float' in init_formats:
+                ts = TypeSpec(init_formats['$float'].ref_type, 0, [])
+                return ValueToken(token, ts, None)
+            raise RuntimeError(f'No initializer format for float')
+
+        if token.type == TokenType.String:
+            if '$string' in init_formats:
+                ts = TypeSpec(init_formats['$string'].ref_type, 0, [])
+                return ValueToken(token, ts, None)
+            raise RuntimeError(f'No initializer format for string')
+
+        if token.type == TokenType.ValueKeyword:
+            if token.value in init_formats:
+                ts = TypeSpec(init_formats[token.value].ref_type, 0, [])
+                return ValueToken(token, ts, None)
+            raise RuntimeError(f'No initializer format for {token.value}')
+
+        if token.type == TokenType.Identifier:
+            v = self.parsing_context.get_global(token.value)
+            if v is None:
+                raise RuntimeError(f'{token} not found at line {token.line}')
+            return ValueToken(token, v, None)
+
+    def parse(self, tokens: TokenIterator, context: ParsingContext) -> ValueToken | OperatorInstance:
+        self.parsing_context = context
+        self.workingOperator = None
+
+        for t, i in tokens:
+            if t.type == TokenType.Operator:
+                self.__parse_operator_structure(t)
+            else:
+                val = self.__parse_value(t)
+                self.stack.append(val)
+
+        return self.stack[0]
 
 
 class StructureParser:
@@ -25,9 +93,11 @@ class StructureParser:
         self.tokenizer_items = tokenizer_items
 
         self.structure_count = 0
-        self.parsed_variables: dict[str, Token] = {}
+        self.parsed_variables: dict[str, Token | ValueToken | OperatorInstance] = {}
         self.context: ParsingContext = ParsingContext()
         self.tokens: TokenIterator = TokenIterator([])
+
+        self.expression_parser = ExpressionParser(items)
 
     def __handle_typename(self, comp: StructureComponent, structure: Structure):
         var = structure.component_specs[comp.value]
@@ -68,9 +138,9 @@ class StructureParser:
     def __handle_expression(self, comp: StructureComponent, structure: Structure):
         var = structure.component_specs[comp.value]
 
-        expr, var_type = parse_expression(self.tokens, self.items)
+        expr = self.expression_parser.parse(self.tokens, self.context)
 
-        self.parsed_variables[var.name] = ExpressionToken(expr, var_type)
+        self.parsed_variables[var.name] = expr
         self.structure_count += 1
 
     def __handle_variable(self, comp: StructureComponent, structure: Structure):

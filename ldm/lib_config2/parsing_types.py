@@ -1,8 +1,37 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
+from typing import Protocol
+
 
 # SPECS
+@dataclass
+class TypeSpec:
+    name: str
+    num_subtypes: int
+    subtypes: list[TypeSpec]
+
+
+@dataclass
+class GeneralType(Protocol):
+    spec: TypeSpec
+    superclass: TypeSpec | None
+    methods: list[Method]
+
+
+@dataclass
+class PrimitiveTypeInitialize:
+    type: str
+
+
+@dataclass
+class PrimitiveType:
+    spec: TypeSpec
+    superclass: TypeSpec | None
+    methods: list[Method]
+    initialize: PrimitiveTypeInitialize
+    value_keywords: list[ValueKeyword]
+
 
 @dataclass
 class MethodArgument:
@@ -22,20 +51,6 @@ class Method:
 class ValueKeyword:
     name: str
     value_type: str
-
-
-@dataclass
-class PrimitiveTypeInitialize:
-    type: str
-
-
-@dataclass
-class PrimitiveType:
-    name: str
-    methods: list[Method]
-    initialize: PrimitiveTypeInitialize
-    value_keywords: list[ValueKeyword]
-    superclass: str
 
 
 @dataclass
@@ -92,11 +107,14 @@ class Operator:
 @dataclass
 class Spec:
     primitive_types: dict[str, PrimitiveType]
+    '''{typename: PrimitiveType}'''
     make_variables: dict[str, MakeVariable]
+    '''{MakeVariable name: MakeVariable}'''
     initializer_formats: dict[str, InitializationSpec]
+    '''{format name ($...) or value keyword: InitializationSpec}'''
     operators: dict[str, Operator]
+    '''{Operator name (NOT trigger): Operator}'''
     
-
 
 # DEFINITIONS
 class StructureComponentType(Enum):
@@ -135,4 +153,3 @@ class TypeTreeNode:
     type: PrimitiveType
     parent: TypeTreeNode | None
     children: list[TypeTreeNode]
-
