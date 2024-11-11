@@ -9,7 +9,6 @@
     "type": "operator",
     "name": "+",
     "structure": "$left + $right",
-    "trigger": "+",
     "associativity": "left-to-right"
   }
 ]

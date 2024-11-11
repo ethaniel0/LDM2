@@ -82,16 +82,73 @@ class Associativity(Enum):
     NONE = 2
 
 
+class OperatorType(Enum):
+    UNKNOWN = 0
+    '''Unknown operator type. Used as an initializer, will error if propagated to code parsing.'''
+
+    BINARY = 1
+    '''Binary operator that takes an expression on the left and right. 
+    Also includes the ternary operator or any operator with an expression in the middle'''
+
+    UNARY_RIGHT = 2
+    '''Unary operator that takes an expression on the right, as the negation operator:
+     
+    x = -some_number.
+     
+    Also includes operators that contain multiple expressions prepended by a unary operator as such:
+    
+    (+ a b) to signal a + b '''
+
+    UNARY_LEFT = 3
+    '''Unary operator that takes an expression on the left, as the increment operator:
+    
+    x = ++some_number.
+    
+    Also includes operators that contain multiple expressions appended by a unary operator as such:
+    
+    (a b +) to signal a + b
+    '''
+
+    INTERNAL = 4
+    '''Internal operator that does not expose any expressions on the right or left, such as parentheses.'''
+
+
 @dataclass
 class Operator:
     name: str
+    '''The name of the operator. Is only used for bookkeeping, not for parsing.'''
     precedence: int
+    '''The precedence of the operator. Lower precedence hugs values more closely.'''
     structure: Structure
+    '''The structure of the operator. Contains the components and their definitions.'''
     overloads: list[OperatorOverload]
+    '''The overloads of the operator. Contains the return type and the types of the variables 
+    for each combination of types'''
     trigger: str
+    '''The trigger of the operator. Once found, the operator is created and structure parsed'''
     associativity: Associativity
+    '''The associativity of the operator. Determines how the operator is parsed in the absence of parentheses'''
+    operator_type: OperatorType = OperatorType.UNKNOWN
+    '''The type of the operator (binary, unary, internal). Is determined by the structure of the operator.'''
+    num_variables: int = 0
+
+    def __init__(self, name: str, precedence: int, structure: Structure, overloads: list[OperatorOverload],
+                 trigger: str, associativity: Associativity):
+        self.name = name
+        self.precedence = precedence
+        self.structure = structure
+        self.overloads = overloads
+        self.trigger = trigger
+        self.associativity = associativity
+        self.operator_type = OperatorType.UNKNOWN
+
+        self.num_variables = 0
+        for i in structure.component_defs:
+            if i.component_type == StructureComponentType.Variable:
+                self.num_variables += 1
 
     def overload_matches(self, overload: OperatorOverload):
+        """Checks if an overload configuration matches the operator structure"""
         # Get all variable names from structure components
         structure_vars = set()
         for comp in self.structure.component_specs.values():

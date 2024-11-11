@@ -12,6 +12,7 @@ class TokenType(Enum):
     Type = "$typename",
     PrimitiveType = "typename",
     ValueKeyword = "value",
+    ExpressionSeparator = "separator",
 
     LBRACKET = "[",
     RBRACKET = "]",

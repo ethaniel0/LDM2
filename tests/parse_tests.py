@@ -3,12 +3,11 @@ sys.path.append('..')
 import unittest
 import json
 from ldm.lib_config2.spec_parsing import parse_spec
-import ldm.lib_config2.parsing_types as pt
 from ldm.lib_config2.def_parsing import add_structure_definitions_to_spec
-from ldm.source_tokenizer.tokenize import TokenizerItems, Tokenizer
 from ldm.source_tokenizer.tokenizer_types import *
 from ldm.ast.parsing import ParsingItems, parse
 from ldm.ast import parsing_types as ast_pt
+from parse_test_spec_definitions import SPEC, TOKENIZER, TOKENIZER_ITEMS
 
 
 def load_setup():
@@ -23,173 +22,6 @@ def load_setup():
         add_structure_definitions_to_spec(spec, def_data)
 
     return spec
-
-
-INT_TYPE = pt.PrimitiveType(
-    spec=pt.TypeSpec("int", 0, []),
-    superclass=None,
-    methods=[],
-    initialize=pt.PrimitiveTypeInitialize("$int"),
-    value_keywords=[]
-)
-
-FLOAT_TYPE = pt.PrimitiveType(
-    spec=pt.TypeSpec("float", 0, []),
-    superclass=None,
-    methods=[],
-    initialize=pt.PrimitiveTypeInitialize("$float"),
-    value_keywords=[]
-)
-
-BOOL_TYPE = pt.PrimitiveType(
-    spec=pt.TypeSpec("bool", 0, []),
-    superclass=None,
-    methods=[],
-    initialize=pt.PrimitiveTypeInitialize("bool"),
-    value_keywords=[
-        pt.ValueKeyword(
-            name="true", value_type="bool"
-        ),
-        pt.ValueKeyword(
-            name="false", value_type="bool"
-        )    
-    ],
-)
-
-MAKE_VARIABLE = pt.MakeVariable(
-    name="standard",
-    structure=pt.Structure(
-        component_specs={
-            "typename": pt.StructureSpecComponent(base="typename",
-                                                  name="typename",
-                                                  other={}),
-            "varname": pt.StructureSpecComponent(base="name",
-                                                 name="varname",
-                                                 other={"type": "new-local"}),
-            "expr": pt.StructureSpecComponent(base="expression",
-                                              name="expr",
-                                              other={})
-        },
-        component_defs=[
-            pt.StructureComponent(
-                component_type=pt.StructureComponentType.Variable,
-                value="typename"
-            ),
-            pt.StructureComponent(
-                component_type=pt.StructureComponentType.Variable,
-                value="varname"
-            ),
-            pt.StructureComponent(
-                component_type=pt.StructureComponentType.String,
-                value="="
-            ),
-            pt.StructureComponent(
-                component_type=pt.StructureComponentType.Variable,
-                value="expr"
-            )
-        ]
-    )
-)
-
-PLUS_OPERATOR = pt.Operator(
-    name="+",
-    precedence=8,
-    structure=pt.Structure(
-        component_specs={
-            "left": pt.StructureSpecComponent(base="operator_value", name="left", other={}),
-            "right": pt.StructureSpecComponent(base="operator_value", name="right", other={})
-        },
-        component_defs=[
-            pt.StructureComponent(
-                component_type=pt.StructureComponentType.Variable,
-                value="left"
-            ),
-            pt.StructureComponent(
-                component_type=pt.StructureComponentType.String,
-                value="+"
-            ),
-            pt.StructureComponent(
-                component_type=pt.StructureComponentType.Variable,
-                value="right"
-            )
-        ]
-    ),
-    overloads=[
-        pt.OperatorOverload(
-            name="+",
-            return_type="int",
-            variables={
-                "left": "int",
-                "right": "int"
-            }
-        ),
-        pt.OperatorOverload(
-            name="+",
-            return_type="float",
-            variables={
-                "left": "float",
-                "right": "float"
-            }
-        ),
-        pt.OperatorOverload(
-            name="+",
-            return_type="float",
-            variables={
-                "left": "float",
-                "right": "int"
-            }
-        ),
-        pt.OperatorOverload(
-            name="+",
-            return_type="float",
-            variables={
-                "left": "int",
-                "right": "float"
-            }
-        )
-    ],
-    trigger="+",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
-)
-
-SPEC = pt.Spec(
-    primitive_types={
-        "int": INT_TYPE,
-        "float": FLOAT_TYPE,
-        "bool": BOOL_TYPE
-    },
-    make_variables={
-        "standard": MAKE_VARIABLE
-    },
-    initializer_formats={
-        "$int": pt.InitializationSpec(
-            ref_type="int",
-            init_type=pt.InitializationType.VARIABLE,
-            format="$int"
-        ),
-        "$float": pt.InitializationSpec(
-            ref_type="float",
-            init_type=pt.InitializationType.VARIABLE,
-            format="$float"
-        ),
-        "true": pt.InitializationSpec(
-            ref_type="bool",
-            init_type=pt.InitializationType.LITERAL,
-            format="true"
-        ),
-        "false": pt.InitializationSpec(
-            ref_type="bool",
-            init_type=pt.InitializationType.LITERAL,
-            format="false"
-        )
-    },
-    operators={
-        "+": PLUS_OPERATOR
-    }
-)
-
-TOKENIZER_ITEMS = TokenizerItems(SPEC.primitive_types, SPEC.operators)
-TOKENIZER = Tokenizer(TOKENIZER_ITEMS)
 
 
 class MyTestCase(unittest.TestCase):
@@ -258,13 +90,139 @@ class MyTestCase(unittest.TestCase):
         var_expr: ast_pt.ValueToken = mv.expr
         assert var_expr.value.value == '5'
 
+    def test_make_variable_with_simple_operator(self):
+        source_code = "int x = 5 + 4"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.name == 'standard'
+        assert mv.structure['typename'].value == 'int'
+        assert mv.typename.value == 'int'
+        assert mv.structure['varname'].value == 'x'
+        assert mv.varname.value == 'x'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '+'
+        assert len(expr.operands) == 2
+        assert isinstance(expr.operands[0], ast_pt.ValueToken)
+        assert isinstance(expr.operands[1], ast_pt.ValueToken)
+        assert expr.operands[0].value.value == '5'
+        assert expr.operands[1].value.value == '4'
+
+    def test_make_variable_with_multiple_operator(self):
+        source_code = "int x = 5 + 4 * 6"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.name == 'standard'
+        assert mv.structure['typename'].value == 'int'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '+'
+        assert len(expr.operands) == 2
+        assert isinstance(expr.operands[0], ast_pt.ValueToken)
+        assert isinstance(expr.operands[1], ast_pt.OperatorInstance)
+        assert expr.operands[0].value.value == '5'
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[1]
+        assert inner_op.operator.name == '*'
+        assert len(inner_op.operands) == 2
+        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
+        assert inner_op.operands[0].value.value == '4'
+        assert inner_op.operands[1].value.value == '6'
+
+        source_code = "int x = 5 * 4 + 6"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.name == 'standard'
+        assert mv.structure['typename'].value == 'int'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '+'
+        assert len(expr.operands) == 2
+        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
+        assert isinstance(expr.operands[1], ast_pt.ValueToken)
+        assert expr.operands[1].value.value == '6'
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[0]
+        assert inner_op.operator.name == '*'
+        assert len(inner_op.operands) == 2
+        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
+        assert inner_op.operands[0].value.value == '5'
+        assert inner_op.operands[1].value.value == '4'
+
+    def test_make_variable_with_minus_and_negation(self):
+        source_code = "int x = 5 - -8"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.name == 'standard'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '-'
+        assert len(expr.operands) == 2
+        assert isinstance(expr.operands[0], ast_pt.ValueToken)
+        assert isinstance(expr.operands[1], ast_pt.OperatorInstance)
+        assert expr.operands[0].value.value == '5'
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[1]
+        assert inner_op.operator.name == '- neg'
+        assert len(inner_op.operands) == 1
+        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
+        assert inner_op.operands[0].value.value == '8'
+
+    def test_make_variable_with_ternary_operator(self):
+        source_code = "int x = 5 > 3 ? 1 : 0"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.name == 'standard'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '?:'
+        assert len(expr.operands) == 3
+        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
+        assert isinstance(expr.operands[1], ast_pt.ValueToken)
+        assert isinstance(expr.operands[2], ast_pt.ValueToken)
+        assert expr.operands[1].value.value == '1'
+        assert expr.operands[2].value.value == '0'
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[0]
+        assert inner_op.operator.name == '>'
+        assert len(inner_op.operands) == 2
+        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
+        assert inner_op.operands[0].value.value == '5'
+        assert inner_op.operands[1].value.value == '3'
+
     def test_parsing(self):
-        print()
         spec = load_setup()
         source_code = "int x = 5"
         tokens = TOKENIZER.tokenize(source_code)
         ast = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
-        print(ast)
 
 
 if __name__ == '__main__':

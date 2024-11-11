@@ -5,6 +5,7 @@ sys.path.append('..')
 import json
 from ldm.lib_config2.spec_parsing import parse_spec, string_to_typespec
 from ldm.lib_config2.def_parsing import add_structure_definitions_to_spec
+from ldm.lib_config2.parsing_types import OperatorType
 
 
 class MyTestCase(unittest.TestCase):
@@ -55,6 +56,105 @@ class MyTestCase(unittest.TestCase):
         assert spec.subtypes[1].subtypes[0].name == 'float'
         assert len(spec.subtypes[1].subtypes[0].subtypes) == 0
 
+
+    def test_operator_type_classification(self):
+        spec = '''
+            [
+              {
+                "type": "primitive_type",
+                "name": "int",
+                "initialize": {
+                  "type": "$int"
+                },
+                "methods": []
+              },
+              {
+                "type": "primitive_type",
+                "name": "float",
+                "initialize": {
+                  "type": "$float"
+                },
+                "methods": []
+              },
+              {
+                "type": "operator",
+                "name": "+",
+                "precedence": 8,
+                "components": [
+                      {"name": "left"},
+                      {"name": "right"}
+                ]
+              },
+              {
+                "type": "operator",
+                "name": "+ prefix",
+                "precedence": 8,
+                "components": [
+                      {"name": "r1"},
+                      {"name": "r2"}
+                ]
+              },
+              {
+                "type": "operator",
+                "name": "+ postfix",
+                "precedence": 8,
+                "components": [
+                      {"name": "l1"},
+                      {"name": "l2"}
+                ]
+              },
+              {
+                "type": "operator",
+                "name": "()",
+                "precedence": 1,
+                "components": [
+                      {"name": "expr"}
+                ]
+              }
+            ]
+        '''
+
+        define = '''
+            [{
+            "type": "operator",
+            "name": "+",
+            "structure": "$left + $right",
+            "associativity": "left-to-right"
+            },
+            {
+            "type": "operator",
+            "name": "+ prefix",
+            "structure": "+ $r1 $r2",
+            "associativity": "left-to-right"
+            },
+            {
+            "type": "operator",
+            "name": "+ postfix",
+            "structure": "$l1 $l2 +",
+            "associativity": "left-to-right"
+            },
+            {
+            "type": "operator",
+            "name": "()",
+            "structure": "( $expr )",
+            "associativity": "left-to-right"
+            }]
+        '''
+
+        spec_json = json.loads(spec)
+        def_json = json.loads(define)
+        spec = parse_spec(spec_json)
+        add_structure_definitions_to_spec(spec, def_json)
+
+        assert spec.operators['+'].operator_type == OperatorType.BINARY
+        assert spec.operators['+ prefix'].operator_type == OperatorType.UNARY_RIGHT
+        assert spec.operators['+ postfix'].operator_type == OperatorType.UNARY_LEFT
+        assert spec.operators['()'].operator_type == OperatorType.INTERNAL
+
+        assert spec.operators['+'].trigger == '+'
+        assert spec.operators['+ prefix'].trigger == '+'
+        assert spec.operators['+ postfix'].trigger == '+'
+        assert spec.operators['()'].trigger == '('
 
     def test_parsing_doesnt_fail(self):
         filename = 'test_std_spec.json'

@@ -30,6 +30,15 @@ class TokenIterator:
     def current_index(self):
         return self.index
 
+    def peek(self, index: int = -1) -> Token | None:
+        if index == -1:
+            index = self.index
+
+        if index >= len(self.tokens):
+            return None
+
+        return self.tokens[index]
+
 
 @dataclass
 class ParsingItems:
@@ -104,10 +113,22 @@ class OperatorInstance:
     result_type: str
     parse_parent: OperatorInstance | None
 
+    def __str__(self):
+        return f"OperatorInstance({self.operator.name})"
+
+    def __repr__(self):
+        return f"OperatorInstance({self.operator.name})"
+
 
 @dataclass
 class ValueToken:
     value: Token  # This could be a literal or variable name, depending on your language
     var_type: TypeSpec
     parse_parent: OperatorInstance | None
+
+    def __str__(self):
+        return f"ValueToken({self.value.value}: {self.var_type})"
+
+    def __repr__(self):
+        return f"{{{self.value.value}}}"
 

@@ -96,7 +96,7 @@ def build_init_formats_from_type_tree(type_tree_roots: list[TypeTreeNode]) -> di
                                                  InitializationType.VARIABLE,
                                                  root.type.initialize.type)
         q.extend([c for c in root.children])
-    while len(q) == 0:
+    while len(q) > 0:
         node = q.pop()
         is_var = node.type.initialize.type.startswith('$')
         if is_var:

@@ -103,6 +103,8 @@ class Tokenizer:
             self.tokens.append(Token(TokenType.Operator, self.running_str, self.line))
             self.__reset_state()
             self.char_ind -= 1
+            self.eat(c)
+
 
     def eat(self, c: str):
         self.char_ind += 1

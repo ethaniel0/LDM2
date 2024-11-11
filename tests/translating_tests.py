@@ -6,7 +6,7 @@ import unittest
 import json
 from ldm.lib_config2.spec_parsing import parse_spec
 from ldm.lib_config2.def_parsing import add_structure_definitions_to_spec
-from ldm.source_tokenizer.tokenize import tokenize, TokenizerItems
+from ldm.source_tokenizer.tokenize import TokenizerItems
 from ldm.ast.parsing import ParsingItems, parse
 from ldm.translation.translate import translate, TranslationItems
 

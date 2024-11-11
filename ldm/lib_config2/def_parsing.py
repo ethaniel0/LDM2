@@ -18,6 +18,20 @@ def parse_structure_into_components(structure: str) -> list[StructureComponent]:
     return components
 
 
+def get_trigger(components: list[StructureComponent]) -> str:
+    for comp in components:
+        if comp.component_type == StructureComponentType.String:
+            return comp.value
+    return ""
+
+
+def test_exprs_in_structure(components: list[StructureComponent]) -> bool:
+    for comp in components:
+        if comp.component_type == StructureComponentType.Variable:
+            return True
+    return False
+
+
 def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
     for arg in args:
         comp_type = arg['type']
@@ -37,16 +51,33 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
                     raise ValueError(f"Operator {comp_name} not found")
                 if len(spec.operators[comp_name].structure.component_defs) > 0:
                     raise ValueError(f"Operator {comp_name} already has a definition")
-                if 'trigger' not in arg:
-                    raise ValueError(f"Operator {comp_name} missing required 'trigger' field")
                 components = parse_structure_into_components(arg['structure'])
+
+                trigger = get_trigger(components)
+                if trigger == '':
+                    raise ValueError(f"Operator {comp_name} has no symbols")
 
                 op = spec.operators[comp_name]
                 op.structure.component_defs = components
-                op.trigger = arg['trigger']
+                op.trigger = trigger
+
+                if not test_exprs_in_structure(components):
+                    raise ValueError(f"Operator {comp_name} must have at least one expression")
+
+                op_left = components[0].component_type == StructureComponentType.Variable
+                op_right = components[-1].component_type == StructureComponentType.Variable
+
+                if op_left and op_right:
+                    op.operator_type = OperatorType.BINARY
+                elif op_left:
+                    op.operator_type = OperatorType.UNARY_LEFT
+                elif op_right:
+                    op.operator_type = OperatorType.UNARY_RIGHT
+                else:
+                    op.operator_type = OperatorType.INTERNAL
 
                 if 'associativity' not in arg:
-                    raise ValueError(f"Operator {comp_name} missing required 'associativity' field")
+                    op.associativity = Associativity.LEFT_TO_RIGHT
 
                 match arg['associativity']:
                     case 'left-to-right':
@@ -56,8 +87,7 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
                     case 'none':
                         op.associativity = Associativity.NONE
                     case _:
-                        raise ValueError(f"Unknown associativity {arg['associativity']} for operator {comp_name}")
-
+                        raise ValueError(f"Unknown associativity {arg['associativity']}")
                 
             case _:
                 raise ValueError(f"Unknown component type {comp_type}")
