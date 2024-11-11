@@ -162,6 +162,12 @@ class Operator:
 
 
 @dataclass
+class ExpressionSeparator:
+    name: str
+    value: str
+
+
+@dataclass
 class Spec:
     primitive_types: dict[str, PrimitiveType]
     '''{typename: PrimitiveType}'''
@@ -171,6 +177,8 @@ class Spec:
     '''{format name ($...) or value keyword: InitializationSpec}'''
     operators: dict[str, Operator]
     '''{Operator name (NOT trigger): Operator}'''
+    expression_separators: dict[str, ExpressionSeparator]
+    '''{ExpressionSeparator name: ExpressionSeparator}'''
     
 
 # DEFINITIONS

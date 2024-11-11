@@ -4,7 +4,6 @@ import ldm.lib_config2.parsing_types as pt
 from ldm.source_tokenizer.tokenize import TokenizerItems, Tokenizer
 
 
-
 INT_TYPE = pt.PrimitiveType(
     spec=pt.TypeSpec("int", 0, []),
     superclass=None,
@@ -296,7 +295,6 @@ TIMES_OPERATOR = pt.Operator(
 
 TIMES_OPERATOR.operator_type = pt.OperatorType.BINARY
 
-
 TERNARY_OPERATOR = pt.Operator(
     name="?:",
     precedence=16,
@@ -345,7 +343,6 @@ TERNARY_OPERATOR = pt.Operator(
 )
 
 TERNARY_OPERATOR.operator_type = pt.OperatorType.BINARY
-
 
 GT_OPERATOR = pt.Operator(
     name=">",
@@ -449,7 +446,8 @@ SPEC = pt.Spec(
         "*": TIMES_OPERATOR,
         "?:": TERNARY_OPERATOR,
         ">": GT_OPERATOR
-    }
+    },
+    expression_separators={}
 )
 
 TOKENIZER_ITEMS = TokenizerItems(SPEC.primitive_types, SPEC.operators)

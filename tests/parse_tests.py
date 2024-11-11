@@ -7,6 +7,7 @@ from ldm.lib_config2.def_parsing import add_structure_definitions_to_spec
 from ldm.source_tokenizer.tokenizer_types import *
 from ldm.ast.parsing import ParsingItems, parse
 from ldm.ast import parsing_types as ast_pt
+import ldm.lib_config2.parsing_types as pt
 from parse_test_spec_definitions import SPEC, TOKENIZER, TOKENIZER_ITEMS
 
 
@@ -217,6 +218,99 @@ class MyTestCase(unittest.TestCase):
         assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
         assert inner_op.operands[0].value.value == '5'
         assert inner_op.operands[1].value.value == '3'
+
+    def test_make_variable_with_weird_plus_operator(self):
+        weird_op = pt.Operator(
+            name="weird +",
+            precedence=16,
+            structure=pt.Structure(
+                component_specs={
+                    "x1": pt.StructureSpecComponent(base="operator_value", name="x1", other={}),
+                    "x2": pt.StructureSpecComponent(base="operator_value", name="x2", other={}),
+                    "x3": pt.StructureSpecComponent(base="operator_value", name="x3", other={}),
+                    "x4": pt.StructureSpecComponent(base="operator_value", name="x4", other={})
+                },
+                component_defs=[
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.Variable,
+                        value="x1"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.String,
+                        value="+"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.Variable,
+                        value="x2"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.String,
+                        value="?"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.Variable,
+                        value="x3"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.String,
+                        value="@"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.Variable,
+                        value="x4"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.String,
+                        value="$"
+                    )
+                ]
+            ),
+            overloads=[
+                pt.OperatorOverload(
+                    name="weird +",
+                    return_type="int",
+                    variables={
+                        "x1": "int", "x2": "int", "x3": "int", "x4": "int"
+                    }
+                ),
+            ],
+            trigger="+",
+            associativity=pt.Associativity.LEFT_TO_RIGHT
+        )
+
+        weird_op.operator_type = pt.OperatorType.UNARY_LEFT
+
+        SPEC.operators['weird +'] = weird_op
+
+        source_code = "int x = 5 + 2 ? 3 @ 4 $ + 5"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        del SPEC.operators['weird +']
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.name == 'standard'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '+'
+        assert len(expr.operands) == 2
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[0]
+        assert inner_op.operator.name == 'weird +'
+        assert len(inner_op.operands) == 4
+        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[2], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[3], ast_pt.ValueToken)
+        assert inner_op.operands[0].value.value == '5'
+        assert inner_op.operands[1].value.value == '2'
+        assert inner_op.operands[2].value.value == '3'
+        assert inner_op.operands[3].value.value == '4'
+
+        assert expr.operands[1].value.value == '5'
 
     def test_parsing(self):
         spec = load_setup()

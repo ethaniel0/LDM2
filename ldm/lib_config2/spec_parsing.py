@@ -136,6 +136,7 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
     make_variables: dict[str, MakeVariable] = {}
     operators: dict[str, Operator] = {}
     operator_overloads: list[OperatorOverload] = []
+    expression_separators: dict[str, ExpressionSeparator] = {}
 
     for item in arg:
         match item['type']:
@@ -157,6 +158,10 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
             
             case 'operator_overload':
                 operator_overloads.append(parse_operator_overload(item))
+                
+            case 'expression_separator':
+                es = ExpressionSeparator(item['name'], item['value'])
+                expression_separators[item['name']] = es
 
             case _:
                 raise ValueError(f"Unknown type {item['type']}")
@@ -183,4 +188,4 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
                                                             InitializationType.LITERAL,
                                                             keyword.name)
 
-    return Spec(primitive_types, make_variables, init_formats, operators)
+    return Spec(primitive_types, make_variables, init_formats, operators, expression_separators)

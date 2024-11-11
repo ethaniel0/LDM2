@@ -27,25 +27,29 @@ class ExpressionParser:
         self.tokens = TokenIterator([])
         self.parsing_context = ParsingContext()
 
-    def __create_operator_list(self, token: Token, op_index: int) -> list[OperatorInstance]:
+    def __create_operator_list(self, token: Token) -> list[OperatorInstance]:
         if token.type != TokenType.Operator:
             return []
 
         possible_operators = []
 
-        token_left_is_operator = False
+        has_left = False
 
-        if op_index > 0 and self.tokens.peek(op_index - 1).type == TokenType.Operator:
-            token_left_is_operator = True
+        if self.workingOperator is not None and \
+                len(self.workingOperator.operands) == self.workingOperator.operator.num_variables:
+            has_left = True
+
+        elif not self.workingOperator and len(self.stack) > 0:
+            has_left = True
 
         for op in self.items.config_spec.operators.values():
             if op.trigger == token.value:
-                if token_left_is_operator and (
+                if not has_left and (
                     op.operator_type == OperatorType.UNARY_RIGHT or
                     op.operator_type == OperatorType.INTERNAL
                 ):
                     possible_operators.append(OperatorInstance(op, [], '', None))
-                elif not token_left_is_operator and (
+                elif has_left and (
                     op.operator_type == OperatorType.UNARY_LEFT or
                     op.operator_type == OperatorType.BINARY
                 ):
@@ -54,7 +58,8 @@ class ExpressionParser:
         return possible_operators
 
     def __parse_operator_structure(self, op_token: Token, op_index: int):
-        ops = self.__create_operator_list(op_token, op_index)
+        ops = self.__create_operator_list(op_token)
+
         if len(ops) == 0:
             raise RuntimeError(f'Operator {op_token} not found at line {op_token.line}')
 
@@ -87,7 +92,7 @@ class ExpressionParser:
                     if next_comp.component_type == StructureComponentType.String:
                         successful = True
 
-                        while next_comp.value != self.tokens.peek().value:
+                        while self.tokens.peek() and next_comp.value != self.tokens.peek().value:
                             new_tree = ep.parse_until_full_tree()
                             if new_tree is None:
                                 successful = False
@@ -107,11 +112,9 @@ class ExpressionParser:
                         op.operands.append(tree)
 
                 else:
-                    if comp.value != self.tokens.peek().value:
+                    if not self.tokens.peek() or comp.value != self.tokens.peek().value:
                         break
                     next(self.tokens)
-
-            print('finished parsing op', op, op.operands)
 
             if op_has_left and len(op.operands) == op.operator.num_variables - 1:
                 working_ops.append(op)
@@ -120,7 +123,7 @@ class ExpressionParser:
                 working_ops.append(op)
                 ending_indices.append(self.tokens.current_index())
 
-            self.tokens.goto(op_index)
+            self.tokens.goto(op_index+1)
 
         if len(working_ops) == 0:
             raise RuntimeError(f'Could not parse operator {op_token} at line {op_token.line}')
@@ -151,7 +154,8 @@ class ExpressionParser:
             self.workingOperator = op_choice
         else:
             if has_left:
-                while op_choice.operator.precedence >= self.workingOperator.operator.precedence:
+                while op_choice.operator.precedence >= self.workingOperator.operator.precedence or \
+                        self.workingOperator.operator.operator_type in [OperatorType.UNARY_LEFT, OperatorType.INTERNAL]:
                     if len(self.workingOperator.operands) != self.workingOperator.operator.num_variables:
                         raise RuntimeError(f'Operator {self.workingOperator.operator.name} not fully parsed')
                     if self.workingOperator.parse_parent is None:
@@ -250,6 +254,7 @@ class ExpressionParser:
             if r is None:
                 break
             result = r
+
 
         if result is None:
             raise RuntimeError(f'Could not parse expression')
