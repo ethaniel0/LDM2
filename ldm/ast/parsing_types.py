@@ -77,12 +77,6 @@ class ParsingContext:
         return None
 
 
-class ExpressionToken(Token):
-    def __init__(self, token: Token, var_type: str):
-        super().__init__(token.type, token.value, token.line)
-        self.var_type = var_type
-
-
 @dataclass
 class MakeVariableInstance:
     structure: dict[str, Token | ValueToken | OperatorInstance]
@@ -109,7 +103,7 @@ class MakeVariableInstance:
 @dataclass
 class OperatorInstance:
     operator: Operator
-    operands: list  # List of parsed operands, each either a ValueToken or another OperatorInstance
+    operands: list[ValueToken | OperatorInstance]  # List of parsed operands, each either a ValueToken or another OperatorInstance
     result_type: str
     parse_parent: OperatorInstance | None
 

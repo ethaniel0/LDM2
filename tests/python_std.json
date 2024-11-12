@@ -1,7 +1,7 @@
 [
   {
     "type": "expression_separator",
-    "name": "expression_separator",
+    "name": "main",
     "translate": "\n"
   },
   {
@@ -62,5 +62,86 @@
     "type": "operator_overload",
     "name": "+",
     "left": "float", "right": "int"
+  },
+
+  {
+    "type": "operator",
+    "name": "-",
+    "translate": "$left - $right"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "int", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "float", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "int", "right": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "float", "right": "int"
+  },
+
+  {
+    "type": "operator",
+    "name": "neg",
+    "translate": "- $right"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "int", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "float", "right": "float"
+  },
+
+  {
+    "type": "operator",
+    "name": "*",
+    "translate": "$left * $right"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "int", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "float", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "int", "right": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "float", "right": "int"
+  },
+
+  {
+    "type": "operator",
+    "name": "?:",
+    "translate": "$middle if $left else $right"
+  },
+  {
+    "type": "operator_overload",
+    "name": "?:",
+    "left": "bool",
+    "middle": "$typename<T>",
+    "right": "$typename<T>"
   }
 ]

@@ -6,7 +6,7 @@ import unittest
 import json
 from ldm.lib_config2.spec_parsing import parse_spec
 from ldm.lib_config2.def_parsing import add_structure_definitions_to_spec
-from ldm.source_tokenizer.tokenize import TokenizerItems
+from ldm.source_tokenizer.tokenize import TokenizerItems, Tokenizer
 from ldm.ast.parsing import ParsingItems, parse
 from ldm.translation.translate import translate, TranslationItems
 
@@ -35,9 +35,25 @@ class MyTestCase(unittest.TestCase):
     def test_parsing(self):
         print()
         spec, translation = load_setup()
-        source_code = "int x = 9 int8 y = 12"
-        tokenizer_items = TokenizerItems(list(spec.primitive_types.values()))
-        tokens = tokenize(source_code, tokenizer_items)
+        source_code = "int x = 9"
+
+        tokenizer_items = TokenizerItems(spec.primitive_types, spec.operators)
+        tokenizer = Tokenizer(tokenizer_items)
+        tokens = tokenizer.tokenize(source_code)
+        parsing_items = ParsingItems(spec)
+        ast = parse(tokens, parsing_items, tokenizer_items)
+        code = translate(ast, parsing_items, translation)
+        print('code:')
+        print(code)
+
+    def test_parsing_with_operators(self):
+        print()
+        spec, translation = load_setup()
+        source_code = "int x = true ? 4 * 3 + 2 : 5 - -4"
+
+        tokenizer_items = TokenizerItems(spec.primitive_types, spec.operators)
+        tokenizer = Tokenizer(tokenizer_items)
+        tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
         ast = parse(tokens, parsing_items, tokenizer_items)
         code = translate(ast, parsing_items, translation)

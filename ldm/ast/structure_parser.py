@@ -143,6 +143,8 @@ class ExpressionParser:
                     op_choice = working_ops[i]
                     self.tokens.goto(ending_indices[i])
 
+
+
         left_component = op_choice.operator.structure.component_defs[0]
         has_left = left_component.component_type == StructureComponentType.Variable
 

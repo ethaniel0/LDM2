@@ -11,6 +11,18 @@ class TypeSpec:
     num_subtypes: int
     subtypes: list[TypeSpec]
 
+    def __eq__(self, other):
+        if not isinstance(other, TypeSpec):
+            return False
+        if self.name != other.name or self.num_subtypes != other.num_subtypes:
+            return False
+
+        for i in range(self.num_subtypes):
+            if self.subtypes[i] != other.subtypes[i]:
+                return False
+
+        return True
+
 
 @dataclass
 class GeneralType(Protocol):
@@ -141,11 +153,13 @@ class Operator:
         self.trigger = trigger
         self.associativity = associativity
         self.operator_type = OperatorType.UNKNOWN
-
         self.num_variables = 0
-        for i in structure.component_defs:
+
+    def calc_num_variables(self):
+        for i in self.structure.component_defs:
             if i.component_type == StructureComponentType.Variable:
                 self.num_variables += 1
+
 
     def overload_matches(self, overload: OperatorOverload):
         """Checks if an overload configuration matches the operator structure"""

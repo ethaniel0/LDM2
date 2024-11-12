@@ -113,13 +113,12 @@
   {
     "type": "operator",
     "name": "+",
-    "precedence": 8,
+    "precedence": 6,
     "components": [
           {"name": "left"},
           {"name": "right"}
     ]
   },
-
   {
     "type": "operator_overload",
     "name": "+",
@@ -140,14 +139,102 @@
     "name": "+",
     "left": "float", "right": "float", "return": "float"
   },
+
   {
-    "type": "operator_overload",
-    "name": "+",
-    "left": "string", "right": "int", "return": "string"
+    "type": "operator",
+    "name": "-",
+    "precedence": 6,
+    "components": [
+          {"name": "left"},
+          {"name": "right"}
+    ]
   },
   {
     "type": "operator_overload",
-    "name": "+",
-    "left": "string", "right": "int", "return": "string"
+    "name": "-",
+    "left": "int", "right": "int", "return": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "int", "right": "float", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "float", "right": "int", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "float", "right": "float", "return": "float"
+  },
+
+  {
+    "type": "operator",
+    "name": "neg",
+    "precedence": 3,
+    "components": [
+          {"name": "right"}
+    ]
+  },
+  {
+    "type": "operator_overload",
+    "name": "neg",
+    "right": "int", "return": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "neg",
+    "right": "float", "return": "float"
+  },
+
+  {
+    "type": "operator",
+    "name": "*",
+    "precedence": 5,
+    "components": [
+          {"name": "left"},
+          {"name": "right"}
+    ]
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "int", "right": "int", "return": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "int", "right": "float", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "float", "right": "int", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "float", "right": "float", "return": "float"
+  },
+
+  {
+    "type": "operator",
+    "name": "?:",
+    "precedence": 16,
+    "components": [
+          {"name": "left"},
+          {"name": "middle"},
+          {"name": "right"}
+    ]
+  },
+  {
+    "type": "operator_overload",
+    "name": "?:",
+    "left": "bool",
+    "middle": "$typename<T>",
+    "right": "$typename<T>",
+    "return": "$typename<T>"
   }
 ]

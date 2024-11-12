@@ -314,8 +314,9 @@ class MyTestCase(unittest.TestCase):
 
     def test_parsing(self):
         spec = load_setup()
-        source_code = "int x = 5"
+        source_code = "int x = 5 + 4 * 9"
         tokens = TOKENIZER.tokenize(source_code)
+
         ast = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
 
 

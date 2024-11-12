@@ -10,5 +10,33 @@
     "name": "+",
     "structure": "$left + $right",
     "associativity": "left-to-right"
+  },
+
+  {
+    "type": "operator",
+    "name": "-",
+    "structure": "$left - $right",
+    "associativity": "left-to-right"
+  },
+
+  {
+    "type": "operator",
+    "name": "neg",
+    "structure": "- $right",
+    "associativity": "left-to-right"
+  },
+
+  {
+    "type": "operator",
+    "name": "*",
+    "structure": "$left * $right",
+    "associativity": "left-to-right"
+  },
+
+  {
+    "type": "operator",
+    "name": "?:",
+    "structure": "$left ? $middle : $right",
+    "associativity": "left-to-right"
   }
 ]

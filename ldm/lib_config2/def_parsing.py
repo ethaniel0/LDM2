@@ -61,6 +61,8 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
                 op.structure.component_defs = components
                 op.trigger = trigger
 
+                op.calc_num_variables()
+
                 if not test_exprs_in_structure(components):
                     raise ValueError(f"Operator {comp_name} must have at least one expression")
 

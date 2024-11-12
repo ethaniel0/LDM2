@@ -68,3 +68,10 @@ class ValueKeywordTranslation:
     type: str
     name: str
     translate: str
+
+
+@dataclass
+class OperatorTranslation:
+    type: str
+    name: str
+    translate: list[StructureComponent]
