@@ -279,6 +279,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         weird_op.operator_type = pt.OperatorType.UNARY_LEFT
+        weird_op.calc_num_variables()
 
         SPEC.operators['weird +'] = weird_op
 
@@ -311,6 +312,70 @@ class MyTestCase(unittest.TestCase):
         assert inner_op.operands[3].value.value == '4'
 
         assert expr.operands[1].value.value == '5'
+
+    def test_with_parentheses(self):
+        print()
+        source_code = "int x = (5 + 4) * 6"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.name == 'standard'
+
+        expr: ast_pt.ValueToken = mv.structure['expr']
+
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '*'
+        assert len(expr.operands) == 2
+        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
+        assert isinstance(expr.operands[1], ast_pt.ValueToken)
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[0]
+        assert inner_op.operator.name == '()'
+        assert len(inner_op.operands) == 1
+        assert isinstance(inner_op.operands[0], ast_pt.OperatorInstance)
+        assert inner_op.operands[0].operator.name == '+'
+        assert len(inner_op.operands[0].operands) == 2
+        assert isinstance(inner_op.operands[0].operands[0], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[0].operands[1], ast_pt.ValueToken)
+        assert inner_op.operands[0].operands[0].value.value == '5'
+        assert inner_op.operands[0].operands[1].value.value == '4'
+
+
+    def test_multiline(self):
+        source = '''
+        int x = 5 + 4;
+        int y = 6 * 3;
+        '''
+        tokens = TOKENIZER.tokenize(source)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 2
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        assert isinstance(ast[1], ast_pt.MakeVariableInstance)
+
+        mv1: ast_pt.MakeVariableInstance = ast[0]
+        mv2: ast_pt.MakeVariableInstance = ast[1]
+
+        assert mv1.name == 'standard'
+        assert mv2.name == 'standard'
+
+        assert mv1.structure['typename'].value == 'int'
+        assert mv2.structure['typename'].value == 'int'
+
+        assert mv1.structure['varname'].value == 'x'
+        assert mv2.structure['varname'].value == 'y'
+
+        assert mv1.expr.operator.name == '+'
+        assert mv2.expr.operator.name == '*'
+
+        assert mv1.expr.operands[0].value.value == '5'
+        assert mv1.expr.operands[1].value.value == '4'
+
+        assert mv2.expr.operands[0].value.value == '6'
+        assert mv2.expr.operands[1].value.value == '3'
 
     def test_parsing(self):
         spec = load_setup()

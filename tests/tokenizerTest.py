@@ -3,7 +3,7 @@ import unittest
 import json
 from ldm.lib_config2.spec_parsing import parse_spec
 from ldm.lib_config2.def_parsing import add_structure_definitions_to_spec
-from ldm.source_tokenizer.tokenize import tokenize, TokenizerItems
+from ldm.source_tokenizer.tokenize import Tokenizer, TokenizerItems
 from ldm.source_tokenizer.tokenizer_types import *
 from ldm.ast.parsing import ParsingItems, parse
 
@@ -27,9 +27,9 @@ class MyTestCase(unittest.TestCase):
         print()
         spec = load_setup()
         source_code = "int x = 5"
-        items = TokenizerItems(list(spec.primitive_types.values()))
-        # print('items:', items)
-        tokens = tokenize(source_code, items)
+        items = TokenizerItems(spec.primitive_types, spec.operators, spec.expression_separators)
+        tokenizer = Tokenizer(items)
+        tokens = tokenizer.tokenize(source_code)
         print(tokens)
         assert len(tokens) == 4
         assert tokens[0].type == TokenType.PrimitiveType
@@ -41,17 +41,38 @@ class MyTestCase(unittest.TestCase):
         assert tokens[2].type == TokenType.Operator
         assert tokens[2].value == '='
 
-        assert tokens[3].type == TokenType.Number
+        assert tokens[3].type == TokenType.Integer
         assert tokens[3].value == '5'
 
-    def test_parsing(self):
-        print()
+    def test_numerical_types(self):
         spec = load_setup()
-        source_code = "int x = 5"
-        tokenizer_items = TokenizerItems(list(spec.primitive_types.values()))
-        tokens = tokenize(source_code, tokenizer_items)
-        ast = parse(tokens, ParsingItems(spec.primitive_types, spec.make_variables), tokenizer_items)
-        print(ast)
+        source_code = "5 2.6"
+        items = TokenizerItems(spec.primitive_types, spec.operators, spec.expression_separators)
+        tokenizer = Tokenizer(items)
+        tokens = tokenizer.tokenize(source_code)
+        assert len(tokens) == 2
+
+        assert tokens[0].type == TokenType.Integer
+        assert tokens[0].value == '5'
+
+        assert tokens[1].type == TokenType.Float
+        assert tokens[1].value == '2.6'
+
+    def test_expression_separators(self):
+        spec = load_setup()
+        source_code = ";;"
+        items = TokenizerItems(spec.primitive_types, spec.operators, spec.expression_separators)
+
+        tokenizer = Tokenizer(items)
+        tokens = tokenizer.tokenize(source_code)
+        assert len(tokens) == 2
+
+        assert tokens[0].type == TokenType.ExpressionSeparator
+        assert tokens[0].value == ';'
+
+        assert tokens[1].type == TokenType.ExpressionSeparator
+        assert tokens[1].value == ';'
+
 
 if __name__ == '__main__':
     unittest.main()

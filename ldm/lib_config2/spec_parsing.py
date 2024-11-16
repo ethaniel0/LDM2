@@ -111,13 +111,12 @@ def build_init_formats_from_type_tree(type_tree_roots: list[TypeTreeNode]) -> di
 
 def parse_operator(arg: dict[str, any]) -> Operator:
     name = arg['name']
-    precedence = arg['precedence']
     components = {}
     for item in arg['components']:
         s = StructureSpecComponent('operator_value', item['name'], {})
         components[item['name']] = s
     structure = Structure(components, [])
-    return Operator(name, precedence, structure, [], "", Associativity.NONE)
+    return Operator(name, 0, structure, [], "", Associativity.NONE)
 
 
 def parse_operator_overload(arg: dict[str, any]) -> OperatorOverload:
@@ -158,10 +157,9 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
             
             case 'operator_overload':
                 operator_overloads.append(parse_operator_overload(item))
-                
-            case 'expression_separator':
-                es = ExpressionSeparator(item['name'], item['value'])
-                expression_separators[item['name']] = es
+
+            case 'keyword':
+                pass
 
             case _:
                 raise ValueError(f"Unknown type {item['type']}")

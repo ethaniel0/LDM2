@@ -32,6 +32,71 @@ def test_exprs_in_structure(components: list[StructureComponent]) -> bool:
     return False
 
 
+def add_operator_def(spec: Spec, arg: dict):
+    comp_name = arg['name']
+
+    if comp_name not in spec.operators:
+        raise ValueError(f"Operator {comp_name} not found")
+    if len(spec.operators[comp_name].structure.component_defs) > 0:
+        raise ValueError(f"Operator {comp_name} already has a definition")
+    components = parse_structure_into_components(arg['structure'])
+
+    trigger = get_trigger(components)
+    if trigger == '':
+        raise ValueError(f"Operator {comp_name} has no symbols")
+
+    op = spec.operators[comp_name]
+    op.structure.component_defs = components
+    op.trigger = trigger
+    op.precedence = arg['precedence']
+
+    op.calc_num_variables()
+
+    if not test_exprs_in_structure(components):
+        raise ValueError(f"Operator {comp_name} must have at least one expression")
+
+    op_left = components[0].component_type == StructureComponentType.Variable
+    op_right = components[-1].component_type == StructureComponentType.Variable
+
+    if op_left and op_right:
+        op.operator_type = OperatorType.BINARY
+    elif op_left:
+        op.operator_type = OperatorType.UNARY_LEFT
+    elif op_right:
+        op.operator_type = OperatorType.UNARY_RIGHT
+    else:
+        op.operator_type = OperatorType.INTERNAL
+
+    if 'associativity' not in arg:
+        op.associativity = Associativity.LEFT_TO_RIGHT
+
+    match arg['associativity']:
+        case 'left-to-right':
+            op.associativity = Associativity.LEFT_TO_RIGHT
+        case 'right-to-left':
+            op.associativity = Associativity.RIGHT_TO_LEFT
+        case 'none':
+            op.associativity = Associativity.NONE
+        case _:
+            raise ValueError(f"Unknown associativity {arg['associativity']}")
+
+
+def add_keyword_def(spec: Spec, arg: dict):
+    name = arg['name']
+    typed_name = arg['typed_name']
+
+    if name not in spec.initializer_formats:
+        raise ValueError(f"Value Keyword {name} not found")
+
+    value_type = spec.initializer_formats[name].ref_type
+    if value_type == "":
+        raise ValueError(f"Value Keyword {name} has no reference type")
+
+    # replace the name with the typed name when being searched for
+    spec.initializer_formats[typed_name] = spec.initializer_formats[name]
+    del spec.initializer_formats[name]
+
+
 def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
     for arg in args:
         comp_type = arg['type']
@@ -47,49 +112,17 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
                 spec.make_variables[comp_name].structure.component_defs = components
                 
             case 'operator':
-                if comp_name not in spec.operators:
-                    raise ValueError(f"Operator {comp_name} not found")
-                if len(spec.operators[comp_name].structure.component_defs) > 0:
-                    raise ValueError(f"Operator {comp_name} already has a definition")
-                components = parse_structure_into_components(arg['structure'])
+                add_operator_def(spec, arg)
 
-                trigger = get_trigger(components)
-                if trigger == '':
-                    raise ValueError(f"Operator {comp_name} has no symbols")
+            case 'value_keyword':
+                add_keyword_def(spec, arg)
 
-                op = spec.operators[comp_name]
-                op.structure.component_defs = components
-                op.trigger = trigger
+            case 'keyword':
+                pass
 
-                op.calc_num_variables()
-
-                if not test_exprs_in_structure(components):
-                    raise ValueError(f"Operator {comp_name} must have at least one expression")
-
-                op_left = components[0].component_type == StructureComponentType.Variable
-                op_right = components[-1].component_type == StructureComponentType.Variable
-
-                if op_left and op_right:
-                    op.operator_type = OperatorType.BINARY
-                elif op_left:
-                    op.operator_type = OperatorType.UNARY_LEFT
-                elif op_right:
-                    op.operator_type = OperatorType.UNARY_RIGHT
-                else:
-                    op.operator_type = OperatorType.INTERNAL
-
-                if 'associativity' not in arg:
-                    op.associativity = Associativity.LEFT_TO_RIGHT
-
-                match arg['associativity']:
-                    case 'left-to-right':
-                        op.associativity = Associativity.LEFT_TO_RIGHT
-                    case 'right-to-left':
-                        op.associativity = Associativity.RIGHT_TO_LEFT
-                    case 'none':
-                        op.associativity = Associativity.NONE
-                    case _:
-                        raise ValueError(f"Unknown associativity {arg['associativity']}")
+            case 'expression_separator':
+                es = ExpressionSeparator(arg['name'], arg['value'])
+                spec.expression_separators[arg['value']] = es
                 
             case _:
                 raise ValueError(f"Unknown component type {comp_type}")

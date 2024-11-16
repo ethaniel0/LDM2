@@ -223,8 +223,11 @@ class InitializationType(Enum):
 @dataclass
 class InitializationSpec:
     ref_type: str
+    '''Name of the type it maps to. ex: true to bool'''
     init_type: InitializationType
+    '''Initialization type. Variable or literal'''
     format: str
+    '''Format of the initialization. ex: $int or true'''
 
 
 @dataclass

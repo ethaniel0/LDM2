@@ -1,5 +1,5 @@
 from .tokenizer_types import Token, TokenType
-from ldm.lib_config2.parsing_types import PrimitiveType, Operator
+from ldm.lib_config2.parsing_types import PrimitiveType, Operator, ExpressionSeparator
 from dataclasses import dataclass
 
 
@@ -7,6 +7,7 @@ from dataclasses import dataclass
 class TokenizerItems:
     primitive_types: dict[str, PrimitiveType]
     operators: dict[str, Operator]
+    expression_separators: dict[str, ExpressionSeparator]
 
 
 class Tokenizer:
@@ -37,10 +38,6 @@ class Tokenizer:
                 self.tokens.append(Token(TokenType.LBRACKET, c, self.line))
             case '}':
                 self.tokens.append(Token(TokenType.RBRACKET, c, self.line))
-            case '(':
-                self.tokens.append(Token(TokenType.LPAREN, c, self.line))
-            case ')':
-                self.tokens.append(Token(TokenType.RPAREN, c, self.line))
 
     def __handle_str(self, c: str):
         if c == "\"":
@@ -66,6 +63,7 @@ class Tokenizer:
             self.tokens.append(Token(num_type, self.running_str, self.line))
             self.__reset_state()
             self.char_ind -= 1
+            self.eat(c)
 
     def __get_identifier_type(self):
         # check is primitive type
@@ -95,6 +93,7 @@ class Tokenizer:
         self.tokens.append(Token(token_type, self.running_str, self.line))
         self.__reset_state()
         self.char_ind -= 1
+        self.eat(c)
 
     def __handle_operator(self, c: str):
         if c != '\0' and c not in self.ALPHABET and c not in self.NUMBERS and c not in self.WHITESPACE:
@@ -105,7 +104,6 @@ class Tokenizer:
             self.char_ind -= 1
             self.eat(c)
 
-
     def eat(self, c: str):
         self.char_ind += 1
         if c == "\n":
@@ -114,6 +112,10 @@ class Tokenizer:
         self.index += 1
 
         if len(self.running_str) == 0:
+            if c in self.items.expression_separators:
+                self.tokens.append(Token(TokenType.ExpressionSeparator, c, self.line))
+                return
+            
             if c in self.WHITESPACE:
                 return
             if c == "\"":
@@ -127,7 +129,7 @@ class Tokenizer:
                 self.in_identifier = True
                 self.running_str += c
                 return
-            if c in '{}()':
+            if c in '{}':
                 self.__add_bracket(c)
                 return
 

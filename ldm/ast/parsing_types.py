@@ -106,6 +106,7 @@ class OperatorInstance:
     operands: list[ValueToken | OperatorInstance]  # List of parsed operands, each either a ValueToken or another OperatorInstance
     result_type: str
     parse_parent: OperatorInstance | None
+    token: Token | None
 
     def __str__(self):
         return f"OperatorInstance({self.operator.name})"

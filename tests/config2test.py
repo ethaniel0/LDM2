@@ -79,7 +79,6 @@ class MyTestCase(unittest.TestCase):
               {
                 "type": "operator",
                 "name": "+",
-                "precedence": 8,
                 "components": [
                       {"name": "left"},
                       {"name": "right"}
@@ -88,7 +87,6 @@ class MyTestCase(unittest.TestCase):
               {
                 "type": "operator",
                 "name": "+ prefix",
-                "precedence": 8,
                 "components": [
                       {"name": "r1"},
                       {"name": "r2"}
@@ -97,7 +95,6 @@ class MyTestCase(unittest.TestCase):
               {
                 "type": "operator",
                 "name": "+ postfix",
-                "precedence": 8,
                 "components": [
                       {"name": "l1"},
                       {"name": "l2"}
@@ -106,7 +103,6 @@ class MyTestCase(unittest.TestCase):
               {
                 "type": "operator",
                 "name": "()",
-                "precedence": 1,
                 "components": [
                       {"name": "expr"}
                 ]
@@ -118,24 +114,28 @@ class MyTestCase(unittest.TestCase):
             [{
             "type": "operator",
             "name": "+",
+            "precedence": 6,
             "structure": "$left + $right",
             "associativity": "left-to-right"
             },
             {
             "type": "operator",
             "name": "+ prefix",
+            "precedence": 3,
             "structure": "+ $r1 $r2",
             "associativity": "left-to-right"
             },
             {
             "type": "operator",
             "name": "+ postfix",
+            "precedence": 2,
             "structure": "$l1 $l2 +",
             "associativity": "left-to-right"
             },
             {
             "type": "operator",
             "name": "()",
+            "precedence": 0,
             "structure": "( $expr )",
             "associativity": "left-to-right"
             }]

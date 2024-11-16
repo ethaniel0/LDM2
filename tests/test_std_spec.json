@@ -67,7 +67,6 @@
       }
     ]
   },
-
   {
     "type": "primitive_type",
     "name": "string",
@@ -77,6 +76,7 @@
     "is": "",
     "methods": []
   },
+
 
   {
     "type": "make_variable",
@@ -99,6 +99,22 @@
   },
 
   {
+    "type": "keyword",
+    "name": "if",
+    "components": [
+      {
+        "base": "expression",
+        "name": "condition"
+      },
+      {
+        "base": "block",
+        "name": "block"
+      }
+    ]
+  },
+
+
+  {
     "type": "value_keyword",
     "name": "true",
     "value_type": "bool"
@@ -109,11 +125,9 @@
     "value_type": "bool"
   },
 
-
   {
     "type": "operator",
     "name": "+",
-    "precedence": 6,
     "components": [
           {"name": "left"},
           {"name": "right"}
@@ -143,7 +157,6 @@
   {
     "type": "operator",
     "name": "-",
-    "precedence": 6,
     "components": [
           {"name": "left"},
           {"name": "right"}
@@ -173,7 +186,6 @@
   {
     "type": "operator",
     "name": "neg",
-    "precedence": 3,
     "components": [
           {"name": "right"}
     ]
@@ -192,7 +204,6 @@
   {
     "type": "operator",
     "name": "*",
-    "precedence": 5,
     "components": [
           {"name": "left"},
           {"name": "right"}
@@ -222,7 +233,6 @@
   {
     "type": "operator",
     "name": "?:",
-    "precedence": 16,
     "components": [
           {"name": "left"},
           {"name": "middle"},
@@ -235,6 +245,21 @@
     "left": "bool",
     "middle": "$typename<T>",
     "right": "$typename<T>",
+    "return": "$typename<T>"
+  },
+
+  {
+    "type": "operator",
+    "name": "()",
+    "precedence": 0,
+    "components": [
+          {"name": "inside"}
+    ]
+  },
+  {
+    "type": "operator_overload",
+    "name": "()",
+    "inside": "$typename<T>",
     "return": "$typename<T>"
   }
 ]

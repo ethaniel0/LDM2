@@ -132,6 +132,7 @@ PLUS_OPERATOR = pt.Operator(
 )
 
 PLUS_OPERATOR.operator_type = pt.OperatorType.BINARY
+PLUS_OPERATOR.calc_num_variables()
 
 MINUS_OPERATOR = pt.Operator(
     name="-",
@@ -195,6 +196,7 @@ MINUS_OPERATOR = pt.Operator(
 )
 
 MINUS_OPERATOR.operator_type = pt.OperatorType.BINARY
+MINUS_OPERATOR.calc_num_variables()
 
 NEG_OPERATOR = pt.Operator(
     name="- neg",
@@ -231,6 +233,8 @@ NEG_OPERATOR = pt.Operator(
 )
 
 NEG_OPERATOR.operator_type = pt.OperatorType.UNARY_RIGHT
+NEG_OPERATOR.calc_num_variables()
+
 
 TIMES_OPERATOR = pt.Operator(
     name="*",
@@ -294,6 +298,8 @@ TIMES_OPERATOR = pt.Operator(
 )
 
 TIMES_OPERATOR.operator_type = pt.OperatorType.BINARY
+TIMES_OPERATOR.calc_num_variables()
+
 
 TERNARY_OPERATOR = pt.Operator(
     name="?:",
@@ -343,6 +349,8 @@ TERNARY_OPERATOR = pt.Operator(
 )
 
 TERNARY_OPERATOR.operator_type = pt.OperatorType.BINARY
+TERNARY_OPERATOR.calc_num_variables()
+
 
 GT_OPERATOR = pt.Operator(
     name=">",
@@ -370,7 +378,7 @@ GT_OPERATOR = pt.Operator(
     ),
     overloads=[
         pt.OperatorOverload(
-            name="?:",
+            name=">",
             return_type="bool",
             variables={
                 "left": "int",
@@ -378,7 +386,7 @@ GT_OPERATOR = pt.Operator(
             }
         ),
         pt.OperatorOverload(
-            name="?:",
+            name=">",
             return_type="bool",
             variables={
                 "left": "int",
@@ -386,7 +394,7 @@ GT_OPERATOR = pt.Operator(
             }
         ),
         pt.OperatorOverload(
-            name="?:",
+            name=">",
             return_type="bool",
             variables={
                 "left": "float",
@@ -394,7 +402,7 @@ GT_OPERATOR = pt.Operator(
             }
         ),
         pt.OperatorOverload(
-            name="?:",
+            name=">",
             return_type="bool",
             variables={
                 "left": "float",
@@ -407,6 +415,49 @@ GT_OPERATOR = pt.Operator(
 )
 
 GT_OPERATOR.operator_type = pt.OperatorType.BINARY
+GT_OPERATOR.calc_num_variables()
+
+
+PARENTHESES_OPERATOR = pt.Operator(
+    name="()",
+    precedence=0,
+    structure=pt.Structure(
+        component_specs={
+            "inside": pt.StructureSpecComponent(base="operator_value", name="inside", other={}),
+        },
+        component_defs=[
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value="("
+            ),
+
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="inside"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value=")"
+            )
+        ]
+    ),
+    overloads=[
+        pt.OperatorOverload(
+            name="()",
+            return_type="$typename<T>",
+            variables={
+                "inside": "$typename<T>"
+            }
+        )
+    ],
+    trigger="(",
+    associativity=pt.Associativity.LEFT_TO_RIGHT
+)
+
+PARENTHESES_OPERATOR.operator_type = pt.OperatorType.INTERNAL
+PARENTHESES_OPERATOR.calc_num_variables()
+
+SEMICOLON = pt.ExpressionSeparator("semicolon", ";")
 
 SPEC = pt.Spec(
     primitive_types={
@@ -445,10 +496,15 @@ SPEC = pt.Spec(
         "- neg": NEG_OPERATOR,
         "*": TIMES_OPERATOR,
         "?:": TERNARY_OPERATOR,
-        ">": GT_OPERATOR
+        ">": GT_OPERATOR,
+        "()": PARENTHESES_OPERATOR
     },
-    expression_separators={}
+    expression_separators={";": SEMICOLON}
 )
 
-TOKENIZER_ITEMS = TokenizerItems(SPEC.primitive_types, SPEC.operators)
+TOKENIZER_ITEMS = TokenizerItems(
+    primitive_types=SPEC.primitive_types,
+    operators=SPEC.operators,
+    expression_separators=SPEC.expression_separators
+)
 TOKENIZER = Tokenizer(TOKENIZER_ITEMS)

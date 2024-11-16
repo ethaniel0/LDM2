@@ -6,37 +6,71 @@
   },
 
   {
+    "type": "expression_separator",
+    "name": "semicolon",
+    "value": ";"
+  },
+
+
+  {
+    "type": "keyword",
+    "name": "if",
+    "structure": "if ( $condition ) $block"
+  },
+
+
+  {
+    "type": "value_keyword",
+    "name": "true",
+    "typed_name": "true"
+  },
+  {
+    "type": "value_keyword",
+    "name": "false",
+    "typed_name": "false"
+  },
+
+
+  {
     "type": "operator",
     "name": "+",
+    "precedence": 6,
     "structure": "$left + $right",
     "associativity": "left-to-right"
   },
-
   {
     "type": "operator",
     "name": "-",
+    "precedence": 6,
     "structure": "$left - $right",
     "associativity": "left-to-right"
   },
-
   {
     "type": "operator",
     "name": "neg",
+    "precedence": 3,
     "structure": "- $right",
     "associativity": "left-to-right"
   },
-
   {
     "type": "operator",
     "name": "*",
+    "precedence": 5,
     "structure": "$left * $right",
     "associativity": "left-to-right"
   },
-
   {
     "type": "operator",
     "name": "?:",
+    "precedence": 16,
     "structure": "$left ? $middle : $right",
+    "associativity": "left-to-right"
+  },
+  {
+    "type": "operator",
+    "name": "()",
+    "precedence": 0,
+    "structure": "( $inside )",
     "associativity": "left-to-right"
   }
 ]
