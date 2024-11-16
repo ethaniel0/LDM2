@@ -459,6 +459,39 @@ PARENTHESES_OPERATOR.calc_num_variables()
 
 SEMICOLON = pt.ExpressionSeparator("semicolon", ";")
 
+
+IF_KEYWORD = pt.Keyword(
+    name="if",
+    structure=pt.Structure(
+        component_specs={
+            "condition": pt.StructureSpecComponent(base="expression", name="condition", other={}),
+            "body": pt.StructureSpecComponent(base="block", name="body", other={})
+        },
+        component_defs=[
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value="if"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value="("
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="condition"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value=")"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="body"
+            ),
+        ]
+    )
+)
+
 SPEC = pt.Spec(
     primitive_types={
         "int": INT_TYPE,
@@ -499,6 +532,7 @@ SPEC = pt.Spec(
         ">": GT_OPERATOR,
         "()": PARENTHESES_OPERATOR
     },
+    keywords={"if": IF_KEYWORD},
     expression_separators={";": SEMICOLON}
 )
 

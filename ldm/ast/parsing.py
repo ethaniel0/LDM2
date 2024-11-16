@@ -4,6 +4,37 @@ from ldm.ast.parsing_types import *
 from ldm.ast.structure_parser import StructureParser
 
 
+def __create_structure_list(self, token: Token) -> list[Keyw]:
+    if token.type != TokenType.Operator:
+        return []
+
+    possible_operators = []
+
+    has_left = False
+
+    if self.workingOperator is not None and \
+            len(self.workingOperator.operands) == self.workingOperator.operator.num_variables:
+        has_left = True
+
+    elif not self.workingOperator and len(self.stack) > 0:
+        has_left = True
+
+    for op in self.items.config_spec.operators.values():
+        if op.trigger == token.value:
+            if not has_left and (
+                    op.operator_type == OperatorType.UNARY_RIGHT or
+                    op.operator_type == OperatorType.INTERNAL
+            ):
+                possible_operators.append(OperatorInstance(op, [], '', None, token))
+            elif has_left and (
+                    op.operator_type == OperatorType.UNARY_LEFT or
+                    op.operator_type == OperatorType.BINARY
+            ):
+                possible_operators.append(OperatorInstance(op, [], '', None, token))
+
+    return possible_operators
+
+
 def parse(tokens: list[Token], parsing_items: ParsingItems, tokenizer_items: TokenizerItems):
     # create context to be used when parsing
     context = ParsingContext()

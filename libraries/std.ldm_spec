@@ -1,0 +1,150 @@
+@primitive_type bool {
+    @initialize bool
+    @methods {
+        @method and {
+            @arg(other) bool
+            @return bool
+        }
+        @method or {
+            @arg(other) bool
+            @return bool
+        }
+        @method not { @return bool }
+    }
+}
+@value_keyword true { @type bool }
+@value_keyword false { @type bool }
+
+@primitive_type int {
+    @initialize $int
+    @methods {
+        @method isEven {
+            @return bool
+        }
+        @method sqrt {
+            @arg(base) int
+            @return float
+        }
+    }
+}
+
+@primitive_type int8 {
+    @initialize $int8
+    @is int
+}
+
+@primitive_type float {
+    @initialize $float
+    @methods {
+        @method float sqrt(int base)
+    }
+}
+
+@primitive_type string {
+    @initialize $string
+}
+
+
+@make_variable standard {
+    @components {
+        @typename typename
+        @name varname {
+            @type typename
+        }
+        @expression expr
+    }
+}
+
+
+@keyword if {
+    @components {
+        @expression condition {
+            @type bool
+        }
+        @block block
+    }
+}
+
+
+@operator + {
+    @components left right
+}
+@operator_overload + {
+    @arg_operator_stack stack {
+        @type int
+        @type float
+        @type string
+    }
+    @return stack
+}
+@operator_overload + {
+    @arg(left) string
+    @arg(right) bool
+    @return string
+}
+
+
+@operator - {
+    @components left right
+}
+@operator_overload + {
+    @arg_operator_stack stack {
+        @type int
+        @type float
+    }
+    @return stack
+}
+
+@operator neg {
+    @components right
+}
+@operator_overload neg {
+    @arg_operator_stack stack {
+        @type int
+        @type float
+    }
+    @return stack
+}
+
+@operator * {
+    @components left right
+}
+@operator_overload * {
+    @arg_operator_stack stack {
+        @type int
+        @type float
+    }
+    @return stack
+}
+
+@operator / {
+    @args left right
+}
+@operator_overload / {
+    @arg_operator_stack stack {
+        @type int
+        @type float
+    }
+    @return float
+}
+
+@operator ?: {
+    @components condition option1 option2
+}
+
+@operator_overload ?: {
+    @arg(condition) bool
+    @arg(option1) $typename<T>
+    @arg(option2) $typename<T>
+    @return $typename<T>
+}
+
+
+@operator () {
+    @args inside
+}
+
+@operator_overload () {
+    @arg(inside) $typename<T>
+    @return $typename<T>
+}

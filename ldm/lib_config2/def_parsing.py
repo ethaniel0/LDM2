@@ -81,7 +81,7 @@ def add_operator_def(spec: Spec, arg: dict):
             raise ValueError(f"Unknown associativity {arg['associativity']}")
 
 
-def add_keyword_def(spec: Spec, arg: dict):
+def add_value_keyword_def(spec: Spec, arg: dict):
     name = arg['name']
     typed_name = arg['typed_name']
 
@@ -96,6 +96,15 @@ def add_keyword_def(spec: Spec, arg: dict):
     spec.initializer_formats[typed_name] = spec.initializer_formats[name]
     del spec.initializer_formats[name]
 
+
+def add_keyword_def(spec: Spec, arg: dict):
+    name = arg['name']
+    components = parse_structure_into_components(arg['structure'])
+    if name not in spec.keywords:
+        raise ValueError(f"Keyword {name} not found")
+    if len(spec.keywords[name].structure.component_defs) > 0:
+        raise ValueError(f"Keyword {name} already has a definition")
+    spec.keywords[name].structure.component_defs = components
 
 def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
     for arg in args:
@@ -115,10 +124,10 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
                 add_operator_def(spec, arg)
 
             case 'value_keyword':
-                add_keyword_def(spec, arg)
+                add_value_keyword_def(spec, arg)
 
             case 'keyword':
-                pass
+                add_keyword_def(spec, arg)
 
             case 'expression_separator':
                 es = ExpressionSeparator(arg['name'], arg['value'])

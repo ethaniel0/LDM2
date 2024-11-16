@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec
+from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, Keyword
 
 
 class TokenIterator:
@@ -127,3 +127,15 @@ class ValueToken:
     def __repr__(self):
         return f"{{{self.value.value}}}"
 
+
+@dataclass
+class KeywordInstance:
+    keyword: Keyword
+    operands: list[ValueToken | OperatorInstance]
+    token: Token | None
+
+    def __str__(self):
+        return f"KeywordInstance({self.keyword.name})"
+
+    def __repr__(self):
+        return f"KeywordInstance({self.keyword.name})"

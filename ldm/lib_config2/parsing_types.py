@@ -176,6 +176,12 @@ class Operator:
 
 
 @dataclass
+class Keyword:
+    name: str
+    structure: Structure
+
+
+@dataclass
 class ExpressionSeparator:
     name: str
     value: str
@@ -191,6 +197,8 @@ class Spec:
     '''{format name ($...) or value keyword: InitializationSpec}'''
     operators: dict[str, Operator]
     '''{Operator name (NOT trigger): Operator}'''
+    keywords: dict[str, Keyword]
+    '''{Keyword name: Keyword}'''
     expression_separators: dict[str, ExpressionSeparator]
     '''{ExpressionSeparator name: ExpressionSeparator}'''
     

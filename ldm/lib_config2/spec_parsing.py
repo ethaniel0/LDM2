@@ -1,4 +1,5 @@
 from .parsing_types import *
+from typing import Any
 
 
 def parse_method_argument(arg: dict[str, any]) -> MethodArgument:
@@ -40,7 +41,7 @@ def string_to_typespec(arg: str) -> TypeSpec:
     return TypeSpec(arg[:arg.index('<')], len(types), types)
 
 
-def parse_primitive_type(arg: dict[str, any]) -> PrimitiveType:
+def parse_primitive_type(arg: dict[str, Any]) -> PrimitiveType:
     methods = [parse_method(m) for m in arg['methods']]
     init = parse_primitive_type_initialize(arg['initialize'])
     if 'is' in arg and arg['is']:
@@ -51,11 +52,11 @@ def parse_primitive_type(arg: dict[str, any]) -> PrimitiveType:
     return PrimitiveType(typespec, superclass, methods, init, [])
 
 
-def parse_value_keyword(arg: dict[str, any]) -> ValueKeyword:
+def parse_value_keyword(arg: dict[str, Any]) -> ValueKeyword:
     return ValueKeyword(arg['name'], arg['value_type'])
 
 
-def parse_structure_component(arg: dict[str, any]) -> StructureSpecComponent:
+def parse_structure_component(arg: dict[str, Any]) -> StructureSpecComponent:
     other = {}
     for k, v in arg.items():
         if k not in ['base', 'name']:
@@ -63,7 +64,7 @@ def parse_structure_component(arg: dict[str, any]) -> StructureSpecComponent:
     return StructureSpecComponent(arg['base'], arg['name'], other)
 
 
-def parse_make_variable(arg: dict[str, any]) -> MakeVariable:
+def parse_make_variable(arg: dict[str, Any]) -> MakeVariable:
     components = [parse_structure_component(c) for c in arg['components']]
     components = {c.name: c for c in components}
     return MakeVariable(arg['name'], Structure(components, []))
@@ -109,7 +110,7 @@ def build_init_formats_from_type_tree(type_tree_roots: list[TypeTreeNode]) -> di
     return init_formats
 
 
-def parse_operator(arg: dict[str, any]) -> Operator:
+def parse_operator(arg: dict[str, Any]) -> Operator:
     name = arg['name']
     components = {}
     for item in arg['components']:
@@ -119,7 +120,7 @@ def parse_operator(arg: dict[str, any]) -> Operator:
     return Operator(name, 0, structure, [], "", Associativity.NONE)
 
 
-def parse_operator_overload(arg: dict[str, any]) -> OperatorOverload:
+def parse_operator_overload(arg: dict[str, Any]) -> OperatorOverload:
     name = arg['name']
     return_type = arg['return']
     other = {}
@@ -130,11 +131,22 @@ def parse_operator_overload(arg: dict[str, any]) -> OperatorOverload:
     return OperatorOverload(name, return_type, other)
 
 
-def parse_spec(arg: list[dict[str, any]]) -> Spec:
+def parse_keyword(arg: dict[str, Any]) -> Keyword:
+    name = arg['name']
+    components = {}
+    for item in arg['components']:
+        s = StructureSpecComponent('operator_value', item['name'], {})
+        components[item['name']] = s
+    structure = Structure(components, [])
+    return Keyword(name, structure)
+
+
+def parse_spec(arg: list[dict[str, Any]]) -> Spec:
     primitive_types: dict[str, PrimitiveType] = {}
     make_variables: dict[str, MakeVariable] = {}
     operators: dict[str, Operator] = {}
     operator_overloads: list[OperatorOverload] = []
+    keywords: dict[str, Keyword] = {}
     expression_separators: dict[str, ExpressionSeparator] = {}
 
     for item in arg:
@@ -159,7 +171,7 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
                 operator_overloads.append(parse_operator_overload(item))
 
             case 'keyword':
-                pass
+                keywords[item['name']] = parse_keyword(item)
 
             case _:
                 raise ValueError(f"Unknown type {item['type']}")
@@ -186,4 +198,4 @@ def parse_spec(arg: list[dict[str, any]]) -> Spec:
                                                             InitializationType.LITERAL,
                                                             keyword.name)
 
-    return Spec(primitive_types, make_variables, init_formats, operators, expression_separators)
+    return Spec(primitive_types, make_variables, init_formats, operators, keywords, expression_separators)

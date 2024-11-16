@@ -1,0 +1,63 @@
+@primitive_type bool {
+    @name bool
+}
+@value_keyword true { @name true }
+@value_keyword false { @name false }
+
+@primitive_type int {
+    @name int
+}
+@primitive_type int8 {
+    @name int8
+}
+@primitive_type float {
+    @name float
+}
+@primitive_type string {
+    @name string
+}
+
+@make_variable standard {
+    @structure [ $typename $varname = $expr ]
+}
+
+@keyword if {
+    @structure [
+        if ( $condition ) $block
+    ]
+}
+
+@block_structure main {
+    @structure [ { $inside } ]
+}
+
+@operator + {
+    @precedence 6
+    @structure [ $left + $right ]
+    @associativity left-to-right
+}
+@operator - {
+    @precedence 6
+    @structure [ $left - $right ]
+    @associativity left-to-right
+}
+@operator neg {
+    @precedence 3
+    @structure [ - $right ]
+    @associativity left-to-right
+}
+@operator * {
+    @precedence 5
+    @structure [ $left * $right ]
+    @associativity left-to-right
+}
+@operator ?: {
+    @precedence 16
+    @structure [ $left ? $middle : $right ]
+    @associativity left-to-right
+}
+@operator () {
+    @precedence 0
+    @structure [ ( $inside ) ]
+    @associativity left-to-right
+}
