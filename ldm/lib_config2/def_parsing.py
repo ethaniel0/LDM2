@@ -106,6 +106,12 @@ def add_keyword_def(spec: Spec, arg: dict):
         raise ValueError(f"Keyword {name} already has a definition")
     spec.keywords[name].structure.component_defs = components
 
+    trigger = get_trigger(components)
+    if trigger == '':
+        raise ValueError(f"Keyword {name} has no symbols")
+
+    spec.keywords[name].trigger = trigger
+
 def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
     for arg in args:
         comp_type = arg['type']

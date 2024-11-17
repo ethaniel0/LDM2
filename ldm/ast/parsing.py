@@ -1,38 +1,54 @@
 from __future__ import annotations
 from ldm.source_tokenizer.tokenize import TokenizerItems
+from ldm.source_tokenizer.tokenizer_types import TokenType
 from ldm.ast.parsing_types import *
-from ldm.ast.structure_parser import StructureParser
+from ldm.ast.structure_parser import StructureParser, ExpressionParser, StructureComponentType
 
 
-def __create_structure_list(self, token: Token) -> list[Keyw]:
-    if token.type != TokenType.Operator:
-        return []
+def __create_structure_list(tokens: TokenIterator, parsing_items: ParsingItems, context: ParsingContext) -> list[KeywordInstance | MakeVariableInstance]:
+    token = tokens.peek()
 
-    possible_operators = []
+    possible_keywords: list[KeywordInstance | MakeVariableInstance] = []
+    for kw in parsing_items.config_spec.keywords.values():
+        if kw.trigger == token.value:
+            kwi = KeywordInstance(kw, [], token)
+            possible_keywords.append(kwi)
 
-    has_left = False
+    for mv in parsing_items.config_spec.make_variables.values():
+        first_component = mv.structure.component_defs[0]
+        if first_component.component_type == StructureComponentType.String and first_component.value == token.value:
+            mvi = MakeVariableInstance(mv, {})
+            possible_keywords.append(mvi)
 
-    if self.workingOperator is not None and \
-            len(self.workingOperator.operands) == self.workingOperator.operator.num_variables:
-        has_left = True
+        elif first_component.component_type == StructureComponentType.Variable:
+            spec_component = mv.structure.component_specs[first_component.value]
 
-    elif not self.workingOperator and len(self.stack) > 0:
-        has_left = True
+            if spec_component.base == 'expression':
+                exp = ExpressionParser(parsing_items)
+                test_iterator = TokenIterator(tokens.tokens[tokens.index:])
+                exp.set_tokens_and_context(test_iterator, context)
+                result = exp.parse_until_full_tree()
+                if result is not None:
+                    component_dict = {spec_component.name: result}
+                    mvi = MakeVariableInstance(mv, component_dict)
+                    possible_keywords.append(mvi)
 
-    for op in self.items.config_spec.operators.values():
-        if op.trigger == token.value:
-            if not has_left and (
-                    op.operator_type == OperatorType.UNARY_RIGHT or
-                    op.operator_type == OperatorType.INTERNAL
-            ):
-                possible_operators.append(OperatorInstance(op, [], '', None, token))
-            elif has_left and (
-                    op.operator_type == OperatorType.UNARY_LEFT or
-                    op.operator_type == OperatorType.BINARY
-            ):
-                possible_operators.append(OperatorInstance(op, [], '', None, token))
+            elif spec_component.base == 'typename':
+                if token.value in parsing_items.config_spec.primitive_types:
+                    component_dict = {spec_component.name: TypeSpec(token.value, 0, [])}
+                    mvi = MakeVariableInstance(mv, component_dict)
+                    possible_keywords.append(mvi)
 
-    return possible_operators
+            elif spec_component.base == 'name':
+                if context.has_global(token.value):
+                    component_dict = {spec_component.name: context.get_global(token.value)}
+                    mvi = MakeVariableInstance(mv, component_dict)
+                    possible_keywords.append(mvi)
+
+            else:
+                raise ValueError(f"Unknown base {spec_component.base} for component {spec_component.name}")
+
+    return possible_keywords
 
 
 def parse(tokens: list[Token], parsing_items: ParsingItems, tokenizer_items: TokenizerItems):
@@ -51,8 +67,17 @@ def parse(tokens: list[Token], parsing_items: ParsingItems, tokenizer_items: Tok
     # parse all tokens into asts
     ast_nodes = []
     while not iterator.done():
-        node = sp.parse(iterator, mv_structure, context)
-        mv = MakeVariableInstance('standard', node)
-        ast_nodes.append(mv)
+
+        possible_structures = __create_structure_list(iterator, parsing_items, context)
+        for structure in possible_structures:
+            if isinstance(structure, KeywordInstance):
+                node = sp.parse(iterator, structure.keyword.structure, context)
+                structure.components = node
+                ast_nodes.append(structure)
+
+            elif isinstance(structure, MakeVariableInstance):
+                node = sp.parse(iterator, structure.mv.structure, context)
+                structure.components = node
+                ast_nodes.append(structure)
 
     return ast_nodes

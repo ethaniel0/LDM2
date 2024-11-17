@@ -489,7 +489,8 @@ IF_KEYWORD = pt.Keyword(
                 value="body"
             ),
         ]
-    )
+    ),
+    trigger="if"
 )
 
 SPEC = pt.Spec(
@@ -539,6 +540,7 @@ SPEC = pt.Spec(
 TOKENIZER_ITEMS = TokenizerItems(
     primitive_types=SPEC.primitive_types,
     operators=SPEC.operators,
+    keywords=SPEC.keywords,
     expression_separators=SPEC.expression_separators
 )
 TOKENIZER = Tokenizer(TOKENIZER_ITEMS)

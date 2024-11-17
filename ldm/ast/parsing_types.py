@@ -1,7 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import Any
+
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, Keyword
+from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, Keyword, MakeVariable
 
 
 class TokenIterator:
@@ -78,29 +80,6 @@ class ParsingContext:
 
 
 @dataclass
-class MakeVariableInstance:
-    structure: dict[str, Token | ValueToken | OperatorInstance]
-    name: str
-    typename: Token
-    varname: Token
-    expr: ValueToken | OperatorInstance
-
-    def __init__(self, name: str, structure: dict[str, Token | ValueToken | OperatorInstance]):
-        self.structure = structure
-        if 'typename' not in structure:
-            raise RuntimeError(f'typename variable not found in Make Variable structure "{name}"')
-        elif 'varname' not in structure:
-            raise RuntimeError(f'varname variable not found in Make Variable structure "{name}"')
-        elif 'expr' not in structure:
-            raise RuntimeError(f'expr variable not found in Make Variable structure "{name}"')
-
-        self.typename = structure['typename']
-        self.varname = structure['varname']
-        self.expr = structure['expr']
-        self.name = name
-
-
-@dataclass
 class OperatorInstance:
     operator: Operator
     operands: list[ValueToken | OperatorInstance]  # List of parsed operands, each either a ValueToken or another OperatorInstance
@@ -128,10 +107,26 @@ class ValueToken:
         return f"{{{self.value.value}}}"
 
 
+class Structured:
+    components: dict[str, Any]
+
+
+@dataclass
+class MakeVariableInstance:
+    mv: MakeVariable
+    components: dict[str, Token | ValueToken | OperatorInstance]
+
+    def __str__(self):
+        return f"MakeVariableInstance({self.mv.name} {self.components})"
+
+    def __repr__(self):
+        return f"MakeVariableInstance({self.mv.name})"
+
+
 @dataclass
 class KeywordInstance:
     keyword: Keyword
-    operands: list[ValueToken | OperatorInstance]
+    components: dict[str, Token | ValueToken | OperatorInstance]
     token: Token | None
 
     def __str__(self):

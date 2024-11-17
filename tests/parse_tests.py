@@ -63,12 +63,12 @@ class MyTestCase(unittest.TestCase):
         assert tokens[0].line == 1
 
     def test_unknown_operator(self):
-        source_code = "-"
+        source_code = "&"
         tokens = TOKENIZER.tokenize(source_code)
         # even if unknown, will recognize as operator
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.Operator
-        assert tokens[0].value == "-"
+        assert tokens[0].value == "&"
         assert tokens[0].line == 1
 
     def test_make_variable_parsing(self):
@@ -79,16 +79,14 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
-        assert mv.structure['typename'].value == 'int'
-        assert mv.typename.value == 'int'
-        assert mv.structure['varname'].value == 'x'
-        assert mv.varname.value == 'x'
+        assert mv.mv.name == 'standard'
+        assert mv.components['typename'].value == 'int'
+        assert mv.components['varname'].value == 'x'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.ValueToken)
         assert expr.value.value == '5'
-        var_expr: ast_pt.ValueToken = mv.expr
+        var_expr: ast_pt.ValueToken = mv.components['expr']
         assert var_expr.value.value == '5'
 
     def test_make_variable_with_simple_operator(self):
@@ -99,13 +97,11 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
-        assert mv.structure['typename'].value == 'int'
-        assert mv.typename.value == 'int'
-        assert mv.structure['varname'].value == 'x'
-        assert mv.varname.value == 'x'
+        assert mv.mv.name == 'standard'
+        assert mv.components['typename'].value == 'int'
+        assert mv.components['varname'].value == 'x'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert len(expr.operands) == 2
@@ -122,10 +118,10 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
-        assert mv.structure['typename'].value == 'int'
+        assert mv.mv.name == 'standard'
+        assert mv.components['typename'].value == 'int'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert len(expr.operands) == 2
@@ -148,10 +144,10 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
-        assert mv.structure['typename'].value == 'int'
+        assert mv.mv.name == 'standard'
+        assert mv.components['typename'].value == 'int'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert len(expr.operands) == 2
@@ -175,9 +171,9 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
+        assert mv.mv.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '-'
         assert len(expr.operands) == 2
@@ -199,9 +195,9 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
+        assert mv.mv.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '?:'
         assert len(expr.operands) == 3
@@ -292,9 +288,9 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
+        assert mv.mv.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert len(expr.operands) == 2
@@ -322,9 +318,9 @@ class MyTestCase(unittest.TestCase):
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.name == 'standard'
+        assert mv.mv.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.structure['expr']
+        expr: ast_pt.ValueToken = mv.components['expr']
 
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '*'
@@ -359,23 +355,25 @@ class MyTestCase(unittest.TestCase):
         mv1: ast_pt.MakeVariableInstance = ast[0]
         mv2: ast_pt.MakeVariableInstance = ast[1]
 
-        assert mv1.name == 'standard'
-        assert mv2.name == 'standard'
+        print(mv1)
 
-        assert mv1.structure['typename'].value == 'int'
-        assert mv2.structure['typename'].value == 'int'
+        assert mv1.mv.name == 'standard'
+        assert mv2.mv.name == 'standard'
 
-        assert mv1.structure['varname'].value == 'x'
-        assert mv2.structure['varname'].value == 'y'
+        assert mv1.components['typename'].value == 'int'
+        assert mv2.components['typename'].value == 'int'
 
-        assert mv1.expr.operator.name == '+'
-        assert mv2.expr.operator.name == '*'
+        assert mv1.components['varname'].value == 'x'
+        assert mv2.components['varname'].value == 'y'
 
-        assert mv1.expr.operands[0].value.value == '5'
-        assert mv1.expr.operands[1].value.value == '4'
+        assert mv1.components['expr'].operator.name == '+'
+        assert mv2.components['expr'].operator.name == '*'
 
-        assert mv2.expr.operands[0].value.value == '6'
-        assert mv2.expr.operands[1].value.value == '3'
+        assert mv1.components['expr'].operands[0].value.value == '5'
+        assert mv1.components['expr'].operands[1].value.value == '4'
+
+        assert mv2.components['expr'].operands[0].value.value == '6'
+        assert mv2.components['expr'].operands[1].value.value == '3'
 
     def test_parsing(self):
         spec = load_setup()

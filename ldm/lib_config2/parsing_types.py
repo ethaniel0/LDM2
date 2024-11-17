@@ -178,7 +178,11 @@ class Operator:
 @dataclass
 class Keyword:
     name: str
+    '''The name of the keyword. Is only used for bookkeeping, not for parsing.'''
     structure: Structure
+    '''The structure of the keyword. Contains the components and their definitions.'''
+    trigger: str
+    '''The trigger of the keyword. Once found, the keyword is created and structure parsed'''
 
 
 @dataclass

@@ -138,7 +138,7 @@ def parse_keyword(arg: dict[str, Any]) -> Keyword:
         s = StructureSpecComponent('operator_value', item['name'], {})
         components[item['name']] = s
     structure = Structure(components, [])
-    return Keyword(name, structure)
+    return Keyword(name, structure, "")
 
 
 def parse_spec(arg: list[dict[str, Any]]) -> Spec:

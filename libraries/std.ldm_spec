@@ -64,6 +64,28 @@
         @block block
     }
 }
+@keyword elif {
+    @components {
+        @expression condition {
+            @type bool
+        }
+        @block block
+    }
+    @checks {
+        @or { @after if @after elif }
+    }
+}
+@keyword else {
+    @components {
+        @expression condition {
+            @type bool
+        }
+        @block block
+    }
+    @checks {
+        @or { @after if @after elif }
+    }
+}
 
 
 @operator + {
