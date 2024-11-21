@@ -1,6 +1,5 @@
 from __future__ import annotations
 from ldm.source_tokenizer.tokenize import TokenizerItems
-from ldm.source_tokenizer.tokenizer_types import TokenType
 from ldm.ast.parsing_types import *
 from ldm.ast.structure_parser import StructureParser, ExpressionParser, StructureComponentType
 
@@ -11,7 +10,7 @@ def __create_structure_list(tokens: TokenIterator, parsing_items: ParsingItems, 
     possible_keywords: list[KeywordInstance | MakeVariableInstance] = []
     for kw in parsing_items.config_spec.keywords.values():
         if kw.trigger == token.value:
-            kwi = KeywordInstance(kw, [], token)
+            kwi = KeywordInstance(kw, {}, token)
             possible_keywords.append(kwi)
 
     for mv in parsing_items.config_spec.make_variables.values():
@@ -56,28 +55,6 @@ def parse(tokens: list[Token], parsing_items: ParsingItems, tokenizer_items: Tok
     context = ParsingContext()
     iterator = TokenIterator(tokens)
 
-    # while simplified, only ever use the main make_variable structure
-    mvs = parsing_items.config_spec.make_variables
-    mv = mvs[list(mvs.keys())[0]]
-    mv_structure = mv.structure
-
     # create structure parser
     sp = StructureParser(parsing_items, tokenizer_items)
-
-    # parse all tokens into asts
-    ast_nodes = []
-    while not iterator.done():
-
-        possible_structures = __create_structure_list(iterator, parsing_items, context)
-        for structure in possible_structures:
-            if isinstance(structure, KeywordInstance):
-                node = sp.parse(iterator, structure.keyword.structure, context)
-                structure.components = node
-                ast_nodes.append(structure)
-
-            elif isinstance(structure, MakeVariableInstance):
-                node = sp.parse(iterator, structure.mv.structure, context)
-                structure.components = node
-                ast_nodes.append(structure)
-
-    return ast_nodes
+    return sp.parse(iterator, context)

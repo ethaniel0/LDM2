@@ -148,6 +148,7 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
     operator_overloads: list[OperatorOverload] = []
     keywords: dict[str, Keyword] = {}
     expression_separators: dict[str, ExpressionSeparator] = {}
+    block_structures: dict[str, BlockStructure] = {}
 
     for item in arg:
         match item['type']:
@@ -172,6 +173,13 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
 
             case 'keyword':
                 keywords[item['name']] = parse_keyword(item)
+
+            case 'block':
+                spec_components = {}
+                for c in item['components']:
+                    spec_components[c['name']] = parse_structure_component(c)
+                b = BlockStructure(item['name'], Structure(spec_components, []))
+                block_structures[item['name']] = b
 
             case _:
                 raise ValueError(f"Unknown type {item['type']}")
@@ -198,4 +206,5 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                                                             InitializationType.LITERAL,
                                                             keyword.name)
 
-    return Spec(primitive_types, make_variables, init_formats, operators, keywords, expression_separators)
+    return Spec(primitive_types, make_variables, init_formats, operators,
+                keywords, expression_separators, block_structures)

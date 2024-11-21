@@ -534,7 +534,31 @@ SPEC = pt.Spec(
         "()": PARENTHESES_OPERATOR
     },
     keywords={"if": IF_KEYWORD},
-    expression_separators={";": SEMICOLON}
+    expression_separators={";": SEMICOLON},
+    block_structures={
+        "main": pt.BlockStructure(
+            name="main",
+            structure=pt.Structure(
+                component_specs={
+                    "body": pt.StructureSpecComponent(base="block", name="body", other={})
+                },
+                component_defs=[
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.String,
+                        value="{"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.Variable,
+                        value="body"
+                    ),
+                    pt.StructureComponent(
+                        component_type=pt.StructureComponentType.String,
+                        value="}"
+                    ),
+                ]
+            )
+        )
+    }
 )
 
 TOKENIZER_ITEMS = TokenizerItems(

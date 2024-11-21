@@ -18,6 +18,12 @@
     "structure": "if ( $condition ) $block"
   },
 
+  {
+    "type": "block",
+    "name": "main",
+    "structure": "{ $body }"
+  },
+
 
   {
     "type": "value_keyword",

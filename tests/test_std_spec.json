@@ -113,6 +113,17 @@
     ]
   },
 
+  {
+    "type": "block",
+    "name": "main",
+    "components": [
+      {
+        "base": "block",
+        "name": "body"
+      }
+    ]
+  },
+
 
   {
     "type": "value_keyword",

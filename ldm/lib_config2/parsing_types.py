@@ -192,6 +192,12 @@ class ExpressionSeparator:
 
 
 @dataclass
+class BlockStructure:
+    name: str
+    structure: Structure
+
+
+@dataclass
 class Spec:
     primitive_types: dict[str, PrimitiveType]
     '''{typename: PrimitiveType}'''
@@ -205,6 +211,7 @@ class Spec:
     '''{Keyword name: Keyword}'''
     expression_separators: dict[str, ExpressionSeparator]
     '''{ExpressionSeparator name: ExpressionSeparator}'''
+    block_structures: dict[str, BlockStructure]
     
 
 # DEFINITIONS

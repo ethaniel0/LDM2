@@ -1,272 +1,9 @@
 from __future__ import annotations
-from ldm.source_tokenizer.tokenize import Token, TokenizerItems, Tokenizer, TokenType
+from ldm.source_tokenizer.tokenize import Token, TokenizerItems, Tokenizer
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
-                                   OperatorInstance, ValueToken)
-from ldm.lib_config2.parsing_types import (Structure, StructureComponentType, StructureComponent, TypeSpec,
-                                           OperatorType)
-
-
-class ExpressionParser:
-    def __init__(self, items: ParsingItems):
-        self.items = items
-        self.stack: list[ValueToken | OperatorInstance] = []
-        self.workingOperator: ValueToken | OperatorInstance | None = None
-        self.tokens = TokenIterator([])
-        self.parsing_context = ParsingContext()
-
-    def __create_operator_list(self, token: Token) -> list[OperatorInstance]:
-        if token.type != TokenType.Operator:
-            return []
-
-        possible_operators = []
-
-        has_left = False
-
-        if self.workingOperator is not None and \
-                len(self.workingOperator.operands) == self.workingOperator.operator.num_variables:
-            has_left = True
-
-        elif not self.workingOperator and len(self.stack) > 0:
-            has_left = True
-
-        for op in self.items.config_spec.operators.values():
-            if op.trigger == token.value:
-                if not has_left and (
-                    op.operator_type == OperatorType.UNARY_RIGHT or
-                    op.operator_type == OperatorType.INTERNAL
-                ):
-                    possible_operators.append(OperatorInstance(op, [], '', None, token))
-                elif has_left and (
-                    op.operator_type == OperatorType.UNARY_LEFT or
-                    op.operator_type == OperatorType.BINARY
-                ):
-                    possible_operators.append(OperatorInstance(op, [], '', None, token))
-
-        return possible_operators
-
-    def __parse_operator_structure(self, op_token: Token, op_index: int):
-        ops = self.__create_operator_list(op_token)
-
-        if len(ops) == 0:
-            raise RuntimeError(f'Operator {op_token} not found at line {op_token.line}')
-
-        working_ops = []
-        ending_indices = []
-
-        for op in ops:
-            op_has_left = op.operator.operator_type in [OperatorType.UNARY_LEFT, OperatorType.BINARY]
-            op_components = op.operator.structure.component_defs
-            index = 0
-            for i in op_components:
-                index += 1
-                if i.component_type != StructureComponentType.Variable:
-                    break
-
-            components_parsed = 0
-            components_needed = len(op_components) - index
-
-            for i in range(index, len(op_components)):
-                comp = op_components[i]
-                if comp.component_type == StructureComponentType.Variable:
-                    ep = ExpressionParser(self.items)
-                    ep.set_tokens_and_context(self.tokens, self.parsing_context)
-                    tree = ep.parse_until_full_tree()
-                    if tree is None:
-                        break
-
-                    if i == len(op_components) - 1:
-                        op.operands.append(tree)
-                        components_parsed += 1
-                        continue
-
-                    next_comp = op_components[i + 1]
-                    if next_comp.component_type == StructureComponentType.String:
-                        successful = True
-
-                        while self.tokens.peek() and next_comp.value != self.tokens.peek().value:
-                            new_tree = ep.parse_until_full_tree()
-                            if new_tree is None:
-                                successful = False
-                                break
-                            tree = new_tree
-
-                        if successful:
-                            op.operands.append(tree)
-                            components_parsed += 1
-                        else:
-                            break
-                    else:
-                        new_tree = ep.parse_until_full_tree()
-                        while new_tree is not None:
-                            tree = new_tree
-                            new_tree = ep.parse_until_full_tree()
-                        op.operands.append(tree)
-                        components_parsed += 1
-
-                else:
-                    if not self.tokens.peek() or comp.value != self.tokens.peek().value:
-                        break
-                    components_parsed += 1
-                    next(self.tokens)
-
-            if components_parsed != components_needed:
-                break
-
-            if op_has_left and len(op.operands) == op.operator.num_variables - 1:
-                working_ops.append(op)
-                ending_indices.append(self.tokens.current_index())
-            elif not op_has_left and len(op.operands) == op.operator.num_variables:
-                working_ops.append(op)
-                ending_indices.append(self.tokens.current_index())
-
-            self.tokens.goto(op_index+1)
-
-        if len(working_ops) == 0:
-            raise RuntimeError(f'Could not parse operator {op_token} at line {op_token.line}')
-
-        op_choice = None
-        if len(working_ops) == 1:
-            op_choice = working_ops[0]
-            self.tokens.goto(ending_indices[0])
-        else:
-            # choose operator with most components
-            max_components = 0
-
-            for i in range(len(working_ops)):
-                if len(working_ops[i].operands) > max_components:
-                    max_components = len(working_ops[i].operands)
-                    op_choice = working_ops[i]
-                    self.tokens.goto(ending_indices[i])
-
-        left_component = op_choice.operator.structure.component_defs[0]
-        has_left = left_component.component_type == StructureComponentType.Variable
-
-        if self.workingOperator is None:
-            if has_left:
-                if len(self.stack) == 0:
-                    raise RuntimeError(f'No left operand for operator {op_token} at line {op_token.line}')
-                op_choice.operands.insert(0, self.stack.pop())
-            self.workingOperator = op_choice
-        else:
-            if has_left:
-                while op_choice.operator.precedence >= self.workingOperator.operator.precedence or \
-                        self.workingOperator.operator.operator_type in [OperatorType.UNARY_LEFT, OperatorType.INTERNAL]:
-                    if len(self.workingOperator.operands) != self.workingOperator.operator.num_variables:
-                        raise RuntimeError(f'Operator {self.workingOperator.operator.name} not fully parsed')
-                    if self.workingOperator.parse_parent is None:
-                        op_choice.operands.insert(0, self.workingOperator)
-                        self.workingOperator = op_choice
-                        break
-                    self.workingOperator = self.workingOperator.parse_parent
-
-                if op_choice != self.workingOperator:
-                    op_choice.operands.insert(0, self.workingOperator.operands.pop())
-                    self.workingOperator.operands.append(op_choice)
-                    op_choice.parse_parent = self.workingOperator
-
-                self.workingOperator = op_choice
-
-            else:
-                raise RuntimeError(f'Unexpected operator {op_token} at line {op_token.line}')
-
-    def __parse_value(self, token: Token) -> ValueToken:
-        init_formats = self.items.config_spec.initializer_formats
-
-        if token.type == TokenType.Integer:
-            if '$int' in init_formats:
-                ts = TypeSpec(init_formats['$int'].ref_type, 0, [])
-                return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for int')
-
-        if token.type == TokenType.Float:
-            if '$float' in init_formats:
-                ts = TypeSpec(init_formats['$float'].ref_type, 0, [])
-                return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for float')
-
-        if token.type == TokenType.String:
-            if '$string' in init_formats:
-                ts = TypeSpec(init_formats['$string'].ref_type, 0, [])
-                return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for string')
-
-        if token.type == TokenType.ValueKeyword:
-            if token.value in init_formats:
-                ts = TypeSpec(init_formats[token.value].ref_type, 0, [])
-                return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for {token.value}')
-
-        if token.type == TokenType.Identifier:
-            v = self.parsing_context.get_global(token.value)
-            if v is None:
-                raise RuntimeError(f'{token} not found at line {token.line}')
-            return ValueToken(token, v, None)
-
-    def set_tokens_and_context(self, tokens: TokenIterator, context: ParsingContext):
-        self.tokens = tokens
-        self.parsing_context = context
-
-    def __get_op_head(self):
-        op_head = self.workingOperator
-        while op_head.parse_parent is not None:
-            op_head = op_head.parse_parent
-        return op_head
-
-    def parse_until_full_tree(self) -> ValueToken | OperatorInstance | None:
-        while not self.tokens.done():
-            t, i = next(self.tokens)
-            if t.type == TokenType.Operator:
-                try:
-                    self.__parse_operator_structure(t, i)
-                except RuntimeError as _:
-                    return None
-            elif t.type == TokenType.ExpressionSeparator:
-                break
-
-            else:
-                val = self.__parse_value(t)
-                self.stack.append(val)
-
-            if self.workingOperator and len(self.workingOperator.operands) == self.workingOperator.operator.num_variables:
-                return self.__get_op_head()
-
-            if len(self.stack) == 1 and self.workingOperator is None:
-                return self.stack[0]
-
-        if self.workingOperator and len(self.stack) != 0 or not self.workingOperator and len(self.stack) != 1:
-            return None
-        if self.workingOperator and len(self.workingOperator.operands) < self.workingOperator.operator.num_variables:
-            return None
-
-        if self.workingOperator:
-            return self.workingOperator
-
-        return self.stack[0]
-
-    def parse(self) -> ValueToken | OperatorInstance:
-        self.workingOperator: ValueToken | OperatorInstance | None = None
-
-        result = None
-        while not self.tokens.done() and self.tokens.peek().type != TokenType.ExpressionSeparator:
-            r = self.parse_until_full_tree()
-            if r is None and result is None:
-                raise RuntimeError(f'Could not parse expression at line {self.tokens.peek().line}')
-            if r is None and isinstance(result, OperatorInstance):
-                self.stack.append(result)
-            result = r
-
-        if not self.tokens.done() and self.tokens.peek().type == TokenType.ExpressionSeparator:
-            next(self.tokens)
-
-        if len(self.stack) > 1:
-            if isinstance(self.stack[0], ValueToken):
-                raise RuntimeError(f'Could not parse expression at line {self.stack[0].value.line}')
-            raise RuntimeError(f'Could not parse expression at line {self.stack[0].token.line}')
-
-        if len(self.stack) == 0 and self.workingOperator:
-            return self.__get_op_head()
-
-        return self.stack[0]
+                                   OperatorInstance, ValueToken, BlockInstance, KeywordInstance, MakeVariableInstance)
+from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent, TypeSpec
+from ldm.ast.expression_parser import ExpressionParser
 
 
 class StructureParser:
@@ -275,7 +12,7 @@ class StructureParser:
         self.tokenizer_items = tokenizer_items
 
         self.structure_count = 0
-        self.parsed_variables: dict[str, Token | ValueToken | OperatorInstance] = {}
+        self.parsed_variables: dict[str, Token | ValueToken | OperatorInstance | BlockInstance] = {}
         self.context: ParsingContext = ParsingContext()
         self.tokens: TokenIterator = TokenIterator([])
 
@@ -317,16 +54,98 @@ class StructureParser:
         self.parsed_variables[var.name] = varname
         self.structure_count += 1
 
-    def __handle_expression(self, comp: StructureComponent, structure: Structure):
+    def __handle_expression(self, var_index: int, structure: Structure):
+        comp = structure.component_defs[var_index]
+
         var = structure.component_specs[comp.value]
+        until = ""
+        if var_index < len(structure.component_defs) - 1:
+            next_comp = structure.component_defs[var_index + 1]
+            if next_comp.component_type == StructureComponentType.String:
+                until = next_comp.value
 
         self.expression_parser.set_tokens_and_context(self.tokens, self.context)
-        expr = self.expression_parser.parse()
+        expr = self.expression_parser.parse(until)
 
         self.parsed_variables[var.name] = expr
         self.structure_count += 1
 
-    def __handle_variable(self, comp: StructureComponent, structure: Structure):
+    def __get_valid_blocks(self, block: StructureComponent) -> list[BlockInstance]:
+        blocks = []
+        for b in self.items.config_spec.block_structures.values():
+            if b.structure.component_defs[0].component_type == StructureComponentType.String and \
+                    b.structure.component_defs[0].value == self.tokens.peek().value:
+                blocks.append(BlockInstance(b, {}, self.tokens.peek()))
+            if b.structure.component_defs[0].component_type == StructureComponentType.Variable:
+                raise NotImplementedError('Variable block structures not implemented')
+        return blocks
+
+    def __handle_block(self, block: StructureComponent):
+        blocks = self.__get_valid_blocks(block)
+
+        cur_index = self.tokens.index
+
+        if len(blocks) == 0:
+            raise RuntimeError(f'Block not found at for structure on line {self.tokens.peek().line}')
+
+        working_blocks = []
+        ending_indices = []
+
+        for b in blocks:
+            components_parsed = 0
+            components_needed = len(b.block.structure.component_defs)
+
+            for i in range(len(b.block.structure.component_defs)):
+                comp = b.block.structure.component_defs[i]
+                if comp.component_type == StructureComponentType.Variable:
+                    comp_type = b.block.structure.component_specs[comp.value].base
+                    if comp_type == 'block':
+                        sp = StructureParser(self.items, self.tokenizer_items)
+
+                        next_comp = b.block.structure.component_defs[i + 1]
+                        if next_comp.component_type != StructureComponentType.String:
+                            raise RuntimeError(f'config block must have an ending character')
+
+                        result = sp.parse(self.tokens, self.context, until=next_comp.value)
+                        if result is None:
+                            break
+                        b.components[comp.value] = result
+                    else:
+                        raise NotImplementedError('Variable block structures not implemented')
+                elif comp.component_type == StructureComponentType.String:
+                    if self.tokens.peek().value != comp.value:
+                        break
+                    next(self.tokens)
+                components_parsed += 1
+
+            if components_parsed != components_needed:
+                break
+
+            working_blocks.append(b)
+            ending_indices.append(self.tokens.index)
+
+            self.tokens.goto(cur_index + 1)
+
+        if len(working_blocks) == 0:
+            block_token = self.tokens.peek()
+            raise RuntimeError(f'Could not parse block {block_token} at line {block_token.line}')
+
+        block_choice: None | BlockInstance = None
+        if len(working_blocks) == 1:
+            block_choice = working_blocks[0]
+            self.tokens.goto(ending_indices[0])
+        else:
+            max_components = 0
+            for i in range(len(working_blocks)):
+                if len(working_blocks[i].components) > max_components:
+                    max_components = len(working_blocks[i].components)
+                    block_choice = working_blocks[i]
+                    self.tokens.goto(ending_indices[i])
+
+        return block_choice
+
+    def __handle_variable(self, var_index: int, structure: Structure):
+        comp = structure.component_defs[var_index]
         if comp.value not in structure.component_specs:
             raise RuntimeError(f"structure component {comp.value} not found")
         var = structure.component_specs[comp.value]
@@ -338,12 +157,18 @@ class StructureParser:
             self.__handle_name(comp, structure)
 
         elif var.base == 'expression':
-            self.__handle_expression(comp, structure)
+            self.__handle_expression(var_index, structure)
+
+        elif var.base == 'block':
+            block = self.__handle_block(comp)
+            if block is not None:
+                self.parsed_variables[var.name] = block
+                self.structure_count += 1
 
         else:
             raise RuntimeError(f'base {var.base} not recognized')
 
-    def parse(self, tokens: TokenIterator, structure: Structure, context: ParsingContext) -> dict[str, Token]:
+    def __parse_single_structure(self, tokens: TokenIterator, structure: Structure, context: ParsingContext):
         self.structure_count = 0
         self.parsed_variables: dict[str, Token] = {}
         self.context = context
@@ -353,7 +178,7 @@ class StructureParser:
             s = structure.component_defs[self.structure_count]
 
             if s.component_type == StructureComponentType.Variable:
-                self.__handle_variable(s, structure)
+                self.__handle_variable(self.structure_count, structure)
 
             elif s.component_type == StructureComponentType.String:
                 string_tokens = Tokenizer(self.tokenizer_items).tokenize(s.value)
@@ -370,3 +195,82 @@ class StructureParser:
                 pass
 
         return self.parsed_variables
+
+    def __create_structure_list(self, tokens: TokenIterator, context: ParsingContext) -> list[KeywordInstance | MakeVariableInstance]:
+        token = tokens.peek()
+
+        possible_keywords: list[KeywordInstance | MakeVariableInstance] = []
+        for kw in self.items.config_spec.keywords.values():
+            if kw.trigger == token.value:
+                kwi = KeywordInstance(kw, {}, token)
+                possible_keywords.append(kwi)
+
+        for mv in self.items.config_spec.make_variables.values():
+            first_component = mv.structure.component_defs[0]
+            if first_component.component_type == StructureComponentType.String and first_component.value == token.value:
+                mvi = MakeVariableInstance(mv, {})
+                possible_keywords.append(mvi)
+
+            elif first_component.component_type == StructureComponentType.Variable:
+                spec_component = mv.structure.component_specs[first_component.value]
+
+                if spec_component.base == 'expression':
+                    exp = ExpressionParser(self.items)
+                    test_iterator = TokenIterator(tokens.tokens[tokens.index:])
+                    exp.set_tokens_and_context(test_iterator, context)
+                    result = exp.parse_until_full_tree()
+                    if result is not None:
+                        component_dict = {spec_component.name: result}
+                        mvi = MakeVariableInstance(mv, component_dict)
+                        possible_keywords.append(mvi)
+
+                elif spec_component.base == 'typename':
+                    if token.value in self.items.config_spec.primitive_types:
+                        component_dict = {spec_component.name: TypeSpec(token.value, 0, [])}
+                        mvi = MakeVariableInstance(mv, component_dict)
+                        possible_keywords.append(mvi)
+
+                elif spec_component.base == 'name':
+                    if context.has_global(token.value):
+                        component_dict = {spec_component.name: context.get_global(token.value)}
+                        mvi = MakeVariableInstance(mv, component_dict)
+                        possible_keywords.append(mvi)
+
+                else:
+                    raise ValueError(f"Unknown base {spec_component.base} for component {spec_component.name}")
+
+        return possible_keywords
+
+    def parse(self, tokens: TokenIterator, context: ParsingContext, until="") -> list[KeywordInstance | MakeVariableInstance | OperatorInstance | ValueToken]:
+        self.structure_count = 0
+        self.parsed_variables: dict[str, Token] = {}
+        self.context = context
+        self.tokens = tokens
+
+        ast_nodes = []
+        while not tokens.done():
+            if until != "" and tokens.peek().value == until:
+                break
+
+            possible_structures = self.__create_structure_list(tokens, context)
+
+            if len(possible_structures) == 0:
+                # evaluate as expression
+                exp = ExpressionParser(self.items)
+                exp.set_tokens_and_context(tokens, context)
+                result = exp.parse()
+                ast_nodes.append(result)
+                continue
+
+            for structure in possible_structures:
+                if isinstance(structure, KeywordInstance):
+                    node = self.__parse_single_structure(tokens, structure.keyword.structure, context)
+                    structure.components = node
+                    ast_nodes.append(structure)
+
+                elif isinstance(structure, MakeVariableInstance):
+                    node = self.__parse_single_structure(tokens, structure.mv.structure, context)
+                    structure.components = node
+                    ast_nodes.append(structure)
+
+        return ast_nodes

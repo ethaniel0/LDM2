@@ -102,7 +102,14 @@ class Tokenizer:
 
     def __handle_operator(self, c: str):
         if c != '\0' and c not in self.ALPHABET and c not in self.NUMBERS and c not in self.WHITESPACE:
-            self.running_str += c
+            has_possible_operator = any(o.trigger == self.running_str + c for o in self.items.operators.values())
+            if has_possible_operator:
+                self.running_str += c
+            else:
+                self.tokens.append(Token(TokenType.Operator, self.running_str, self.line))
+                self.__reset_state()
+                self.char_ind -= 1
+                self.eat(c)
         else:
             self.tokens.append(Token(TokenType.Operator, self.running_str, self.line))
             self.__reset_state()
@@ -134,10 +141,6 @@ class Tokenizer:
                 self.in_identifier = True
                 self.running_str += c
                 return
-            if c in '{}':
-                self.__add_bracket(c)
-                return
-
             self.running_str += c
             self.in_operator = True
             return

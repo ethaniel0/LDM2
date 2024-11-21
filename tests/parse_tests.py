@@ -310,7 +310,6 @@ class MyTestCase(unittest.TestCase):
         assert expr.operands[1].value.value == '5'
 
     def test_with_parentheses(self):
-        print()
         source_code = "int x = (5 + 4) * 6"
         tokens = TOKENIZER.tokenize(source_code)
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
@@ -339,7 +338,6 @@ class MyTestCase(unittest.TestCase):
         assert inner_op.operands[0].operands[0].value.value == '5'
         assert inner_op.operands[0].operands[1].value.value == '4'
 
-
     def test_multiline(self):
         source = '''
         int x = 5 + 4;
@@ -354,8 +352,6 @@ class MyTestCase(unittest.TestCase):
 
         mv1: ast_pt.MakeVariableInstance = ast[0]
         mv2: ast_pt.MakeVariableInstance = ast[1]
-
-        print(mv1)
 
         assert mv1.mv.name == 'standard'
         assert mv2.mv.name == 'standard'
@@ -374,6 +370,71 @@ class MyTestCase(unittest.TestCase):
 
         assert mv2.components['expr'].operands[0].value.value == '6'
         assert mv2.components['expr'].operands[1].value.value == '3'
+
+    def test_multiline_fails_when_no_expression_separators(self):
+        source = '''
+                int x = 5 + 4
+                int y = 6 * 3
+                '''
+        tokens = TOKENIZER.tokenize(source)
+        try:
+            parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+            assert False
+        except RuntimeError as e:
+            assert True
+
+        source = '''
+                int x = 5 + 4
+                x = x - 8
+                '''
+        tokens = TOKENIZER.tokenize(source)
+        try:
+            parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+            assert False
+        except RuntimeError as e:
+            print(e)
+            assert True
+
+    def test_if_empty(self):
+        source = '''
+        if (true){
+        
+        }
+        '''
+        tokens = TOKENIZER.tokenize(source)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.KeywordInstance)
+        assert ast[0].keyword.name == 'if'
+
+        if_body = ast[0].components['body']
+        assert isinstance(if_body, ast_pt.BlockInstance)
+        assert len(if_body.components) == 1
+        if_body_body = if_body.components['body']
+        assert len(if_body_body) == 0
+
+    def test_if_not_empty(self):
+        source = '''
+        if (true){
+            int x = 5 + 4;
+        }
+        '''
+        tokens = TOKENIZER.tokenize(source)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.KeywordInstance)
+        assert ast[0].keyword.name == 'if'
+
+        if_body = ast[0].components['body']
+        assert isinstance(if_body, ast_pt.BlockInstance)
+        assert len(if_body.components) == 1
+        if_body_body = if_body.components['body']
+        assert len(if_body_body) == 1
+        assert isinstance(if_body_body[0], ast_pt.MakeVariableInstance)
+
+
 
     def test_parsing(self):
         spec = load_setup()

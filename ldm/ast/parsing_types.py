@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, Keyword, MakeVariable
+from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, Keyword, MakeVariable, BlockStructure
 
 
 class TokenIterator:
@@ -134,3 +134,16 @@ class KeywordInstance:
 
     def __repr__(self):
         return f"KeywordInstance({self.keyword.name})"
+
+
+@dataclass
+class BlockInstance:
+    block: BlockStructure
+    components: dict[str, Token | ValueToken | OperatorInstance | list]
+    token: Token | None
+
+    def __str__(self):
+        return f"BlockInstance({self.block.name})"
+
+    def __repr__(self):
+        return f"BlockInstance({self.block.name})"
