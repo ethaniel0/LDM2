@@ -135,7 +135,7 @@ def parse_keyword(arg: dict[str, Any]) -> Keyword:
     name = arg['name']
     components = {}
     for item in arg['components']:
-        s = StructureSpecComponent('operator_value', item['name'], {})
+        s = StructureSpecComponent(item['base'], item['name'], {})
         components[item['name']] = s
     structure = Structure(components, [])
     return Keyword(name, structure, "")

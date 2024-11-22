@@ -246,6 +246,7 @@ class ExpressionParser:
 
     def parse(self, until="", singular=True) -> ValueToken | OperatorInstance | list[ValueToken | OperatorInstance]:
         self.workingOperator: ValueToken | OperatorInstance | None = None
+        self.stack = []
 
         result = None
         while not self.tokens.done() and self.tokens.peek().type != TokenType.ExpressionSeparator:

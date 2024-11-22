@@ -434,14 +434,33 @@ class MyTestCase(unittest.TestCase):
         assert len(if_body_body) == 1
         assert isinstance(if_body_body[0], ast_pt.MakeVariableInstance)
 
-
-
     def test_parsing(self):
         spec = load_setup()
-        source_code = "int x = 5 + 4 * 9"
+        source_code = """
+        int p = 14;
+        if (p < 12){
+            int x = 5 + 4;
+        }
+        """
         tokens = TOKENIZER.tokenize(source_code)
 
         ast = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
+
+        assert len(ast) == 2
+        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
+        assert isinstance(ast[1], ast_pt.KeywordInstance)
+
+        mv: ast_pt.MakeVariableInstance = ast[0]
+        assert mv.mv.name == 'standard'
+        assert mv.components['typename'].value == 'int'
+        assert mv.components['varname'].value == 'p'
+        assert mv.components['expr'].value.value == '14'
+
+        if_inst: ast_pt.KeywordInstance = ast[1]
+        assert if_inst.keyword.name == 'if'
+        assert len(if_inst.components) == 2
+        assert isinstance(if_inst.components['condition'], ast_pt.OperatorInstance)
+        assert isinstance(if_inst.components['body'], ast_pt.BlockInstance)
 
 
 if __name__ == '__main__':

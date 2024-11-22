@@ -30,11 +30,29 @@
     "name": "int8",
     "translate": "int"
   },
+  {
+    "type": "primitive_type",
+    "name": "float",
+    "translate": "float"
+  },
 
   {
     "type": "make_variable",
     "name": "standard",
     "translate": "$varname: $typename = $expr"
+  },
+
+  {
+    "type": "block",
+    "name": "main",
+    "translate": ":\n$body",
+    "indent": 4
+  },
+
+  {
+    "type": "keyword",
+    "name": "if",
+    "translate": "if $condition $body"
   },
 
   {
@@ -143,5 +161,44 @@
     "left": "bool",
     "middle": "$typename<T>",
     "right": "$typename<T>"
+  },
+
+  {
+    "type": "operator",
+    "name": "=",
+    "translate": "$left = $right"
+  },
+  {
+    "type": "operator_overload",
+    "name": "=",
+    "left": "$typename<T>",
+    "right": "$typename<T>"
+  },
+
+
+  {
+    "type": "operator",
+    "name": "<",
+    "translate": "$left < $right"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "int", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "float", "right": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "int", "right": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "float", "right": "int"
   }
 ]

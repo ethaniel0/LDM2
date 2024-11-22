@@ -108,7 +108,7 @@
       },
       {
         "base": "block",
-        "name": "block"
+        "name": "body"
       }
     ]
   },
@@ -271,6 +271,92 @@
     "type": "operator_overload",
     "name": "()",
     "inside": "$typename<T>",
+    "return": "$typename<T>"
+  },
+
+  {
+    "type": "operator",
+    "name": "<",
+    "components": [
+          {"name": "left"},
+          {"name": "right"}
+    ],
+    "returns": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "int", "right": "int",
+    "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "float", "right": "int",
+    "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "int", "right": "float",
+    "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "float", "right": "float",
+    "return": "bool"
+  },
+
+
+  {
+    "type": "operator",
+    "name": ">",
+    "components": [
+          {"name": "left"},
+          {"name": "right"}
+    ],
+    "returns": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
+    "left": "int", "right": "int",
+    "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
+    "left": "float", "right": "int",
+    "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
+    "left": "int", "right": "float",
+    "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
+    "left": "float", "right": "float",
+    "return": "bool"
+  },
+
+
+  {
+    "type": "operator",
+    "name": "=",
+    "components": [
+          {"name": "left"},
+          {"name": "right"}
+    ],
+    "returns": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "=",
+    "left": "$typename<T>", "right": "$typename<T>",
     "return": "$typename<T>"
   }
 ]

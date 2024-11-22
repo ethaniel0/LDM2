@@ -37,7 +37,10 @@ class MyTestCase(unittest.TestCase):
         spec, translation = load_setup()
         source_code = "int x = 9"
 
-        tokenizer_items = TokenizerItems(spec.primitive_types, spec.operators)
+        tokenizer_items = TokenizerItems(spec.primitive_types,
+                                         spec.operators,
+                                         spec.keywords,
+                                         spec.expression_separators)
         tokenizer = Tokenizer(tokenizer_items)
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
@@ -51,7 +54,49 @@ class MyTestCase(unittest.TestCase):
         spec, translation = load_setup()
         source_code = "int x = true ? 4 * 3 + 2 : 5 - -4"
 
-        tokenizer_items = TokenizerItems(spec.primitive_types, spec.operators)
+        tokenizer_items = TokenizerItems(
+            spec.primitive_types,
+            spec.operators,
+            spec.keywords,
+            spec.expression_separators
+        )
+        tokenizer = Tokenizer(tokenizer_items)
+        tokens = tokenizer.tokenize(source_code)
+        parsing_items = ParsingItems(spec)
+        ast = parse(tokens, parsing_items, tokenizer_items)
+        code = translate(ast, parsing_items, translation)
+        print('code:')
+        print(code)
+
+    def test_with_block(self):
+        print()
+        spec, translation = load_setup()
+        source_code = """
+        bool x = 12;
+        if (x < 14) {
+            if (x < 14) {
+            int zx = 69;
+            if (x < 14) {}
+            float cwdeas = x ? 69 : 420;
+            if (x < 14) {
+            if (x < 14) {
+            if (x < 14) {
+            if (x < 14) {
+            int y = 14;
+        }
+        }
+        }
+        }
+        }
+        }
+        """
+
+        tokenizer_items = TokenizerItems(
+            spec.primitive_types,
+            spec.operators,
+            spec.keywords,
+            spec.expression_separators
+        )
         tokenizer = Tokenizer(tokenizer_items)
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)

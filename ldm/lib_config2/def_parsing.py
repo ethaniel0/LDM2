@@ -93,8 +93,10 @@ def add_value_keyword_def(spec: Spec, arg: dict):
         raise ValueError(f"Value Keyword {name} has no reference type")
 
     # replace the name with the typed name when being searched for
-    spec.initializer_formats[typed_name] = spec.initializer_formats[name]
+    init_format = spec.initializer_formats[name]
     del spec.initializer_formats[name]
+    spec.initializer_formats[typed_name] = init_format
+
 
 
 def add_keyword_def(spec: Spec, arg: dict):

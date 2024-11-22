@@ -75,3 +75,18 @@ class OperatorTranslation:
     type: str
     name: str
     translate: list[StructureComponent]
+
+
+@dataclass
+class KeywordTranslation:
+    type: str
+    name: str
+    translate: list[StructureComponent]
+
+
+@dataclass
+class BlockTranslation:
+    type: str
+    name: str
+    translate: list[StructureComponent]
+    inner_indent: int

@@ -15,7 +15,7 @@
   {
     "type": "keyword",
     "name": "if",
-    "structure": "if ( $condition ) $block"
+    "structure": "if ( $condition ) $body"
   },
 
   {
@@ -77,6 +77,27 @@
     "name": "()",
     "precedence": 0,
     "structure": "( $inside )",
+    "associativity": "left-to-right"
+  },
+  {
+    "type": "operator",
+    "name": "<",
+    "precedence": 9,
+    "structure": "$left < $right",
+    "associativity": "left-to-right"
+  },
+  {
+    "type": "operator",
+    "name": ">",
+    "precedence": 9,
+    "structure": "$left > $right",
+    "associativity": "left-to-right"
+  },
+  {
+    "type": "operator",
+    "name": "=",
+    "precedence": 16,
+    "structure": "$left = $right",
     "associativity": "left-to-right"
   }
 ]

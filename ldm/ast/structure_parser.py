@@ -6,6 +6,9 @@ from ldm.lib_config2.parsing_types import Structure, StructureComponentType, Str
 from ldm.ast.expression_parser import ExpressionParser
 
 
+def to_typespec(token: Token) -> TypeSpec:
+    return TypeSpec(token.value, 0, [])
+
 class StructureParser:
     def __init__(self, items: ParsingItems, tokenizer_items: TokenizerItems):
         self.items = items
@@ -272,5 +275,6 @@ class StructureParser:
                     node = self.__parse_single_structure(tokens, structure.mv.structure, context)
                     structure.components = node
                     ast_nodes.append(structure)
+                    context.variables[structure.components['varname'].value] = to_typespec(structure.components['typename'])
 
         return ast_nodes
