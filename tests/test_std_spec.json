@@ -99,6 +99,27 @@
   },
 
   {
+    "type": "make_variable",
+    "name": "function",
+    "components": [
+      {
+        "base": "typename",
+        "name": "typename"
+      },
+      {
+        "base": "name",
+        "name": "varname",
+        "type": "new-local"
+      },
+      {
+        "base": "block",
+        "name": "body",
+        "scope": "local"
+      }
+    ]
+  },
+
+  {
     "type": "keyword",
     "name": "if",
     "components": [
@@ -108,7 +129,8 @@
       },
       {
         "base": "block",
-        "name": "body"
+        "name": "body",
+        "scope": "local"
       }
     ]
   },

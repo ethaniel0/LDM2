@@ -83,7 +83,7 @@ class StructureParser:
                 raise NotImplementedError('Variable block structures not implemented')
         return blocks
 
-    def __handle_block(self, block: StructureComponent):
+    def __handle_block(self, block: StructureComponent, local=False):
         blocks = self.__get_valid_blocks(block)
 
         cur_index = self.tokens.index
@@ -98,6 +98,12 @@ class StructureParser:
             components_parsed = 0
             components_needed = len(b.block.structure.component_defs)
 
+            if local:
+                block_context = ParsingContext(self.context)
+                block_context.parent = self.context
+            else:
+                block_context = self.context
+
             for i in range(len(b.block.structure.component_defs)):
                 comp = b.block.structure.component_defs[i]
                 if comp.component_type == StructureComponentType.Variable:
@@ -109,7 +115,7 @@ class StructureParser:
                         if next_comp.component_type != StructureComponentType.String:
                             raise RuntimeError(f'config block must have an ending character')
 
-                        result = sp.parse(self.tokens, self.context, until=next_comp.value)
+                        result = sp.parse(self.tokens, block_context, until=next_comp.value)
                         if result is None:
                             break
                         b.components[comp.value] = result
@@ -163,7 +169,14 @@ class StructureParser:
             self.__handle_expression(var_index, structure)
 
         elif var.base == 'block':
-            block = self.__handle_block(comp)
+            local = False
+            if 'scope' in var.other:
+                if var.other['scope'] == 'local':
+                    local = True
+                elif var.other['scope'] != 'global':
+                    raise RuntimeError(f"Unknown scope {var.other['scope']} for block")
+
+            block = self.__handle_block(comp, local)
             if block is not None:
                 self.parsed_variables[var.name] = block
                 self.structure_count += 1
@@ -265,16 +278,48 @@ class StructureParser:
                 ast_nodes.append(result)
                 continue
 
-            for structure in possible_structures:
-                if isinstance(structure, KeywordInstance):
-                    node = self.__parse_single_structure(tokens, structure.keyword.structure, context)
-                    structure.components = node
-                    ast_nodes.append(structure)
+            working_structures = []
+            token_nums = []
 
-                elif isinstance(structure, MakeVariableInstance):
-                    node = self.__parse_single_structure(tokens, structure.mv.structure, context)
-                    structure.components = node
-                    ast_nodes.append(structure)
-                    context.variables[structure.components['varname'].value] = to_typespec(structure.components['typename'])
+            cur_index = tokens.index
+
+            for structure in possible_structures:
+                try:
+                    if isinstance(structure, KeywordInstance):
+                        node = self.__parse_single_structure(tokens, structure.keyword.structure, context)
+                        structure.components = node
+                        working_structures.append((structure, node))
+                        token_nums.append(tokens.index)
+                        # ast_nodes.append(structure)
+
+                    elif isinstance(structure, MakeVariableInstance):
+                        node = self.__parse_single_structure(tokens, structure.mv.structure, context)
+                        structure.components = node
+                        working_structures.append((structure, node))
+                        token_nums.append(tokens.index)
+                        # ast_nodes.append(structure)
+                        # context.variables[structure.components['varname'].value] = to_typespec(structure.components['typename'])
+
+                except RuntimeError as e:
+                    pass
+
+                tokens.goto(cur_index)
+
+            if len(working_structures) == 0:
+                raise RuntimeError(f'Could not parse structure at line {tokens.peek().line}')
+
+            max_components = 0
+            max_structure = None
+            max_index = 0
+            for i in range(len(working_structures)):
+                if len(working_structures[i][1]) > max_components:
+                    max_components = len(working_structures[i][1])
+                    max_structure = working_structures[i]
+                    max_index = token_nums[i]
+
+            ast_nodes.append(max_structure[0])
+            tokens.goto(max_index)
+            if isinstance(max_structure[0], MakeVariableInstance):
+                context.variables[max_structure[1]['varname'].value] = to_typespec(max_structure[1]['typename'])
 
         return ast_nodes

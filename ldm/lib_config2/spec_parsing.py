@@ -121,14 +121,15 @@ def parse_operator(arg: dict[str, Any]) -> Operator:
 
 
 def parse_operator_overload(arg: dict[str, Any]) -> OperatorOverload:
-    name = arg['name']
-    return_type = arg['return']
-    other = {}
+    name: str = arg['name']
+    return_type: str = arg['return']
+    return_typespec = string_to_typespec(return_type)
+    other: dict[str, TypeSpec] = {}
     for i in arg.keys():
         if i != 'name' and i != 'return' and i != 'type':
-            other[i] = arg[i]
+            other[i] = string_to_typespec(arg[i])
     
-    return OperatorOverload(name, return_type, other)
+    return OperatorOverload(name, return_typespec, other)
 
 
 def parse_keyword(arg: dict[str, Any]) -> Keyword:
@@ -136,6 +137,9 @@ def parse_keyword(arg: dict[str, Any]) -> Keyword:
     components = {}
     for item in arg['components']:
         s = StructureSpecComponent(item['base'], item['name'], {})
+        for key in item:
+            if key not in ['base', 'name']:
+                s.other[key] = item[key]
         components[item['name']] = s
     structure = Structure(components, [])
     return Keyword(name, structure, "")

@@ -23,6 +23,12 @@ class TypeSpec:
 
         return True
 
+    def __str__(self):
+        return f"{self.name}{'<' + ', '.join([str(i) for i in self.subtypes]) + '>' if self.num_subtypes > 0 else ''}"
+
+    def __repr__(self):
+        return str(self)
+
 
 @dataclass
 class GeneralType(Protocol):
@@ -81,8 +87,8 @@ class MakeVariable:
 @dataclass
 class OperatorOverload:
     name: str
-    return_type: str
-    variables: dict[str, str]
+    return_type: TypeSpec
+    variables: dict[str, TypeSpec]
     
     def __str__(self):
         return f"<{self.name}|{self.variables.values()}>"

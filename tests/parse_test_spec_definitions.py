@@ -96,34 +96,34 @@ PLUS_OPERATOR = pt.Operator(
     overloads=[
         pt.OperatorOverload(
             name="+",
-            return_type="int",
+            return_type=pt.TypeSpec("int", 0, []),
             variables={
-                "left": "int",
-                "right": "int"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="+",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "float",
-                "right": "float"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="+",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "float",
-                "right": "int"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="+",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "int",
-                "right": "float"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         )
     ],
@@ -160,34 +160,34 @@ MINUS_OPERATOR = pt.Operator(
     overloads=[
         pt.OperatorOverload(
             name="-",
-            return_type="int",
+            return_type=pt.TypeSpec("int", 0, []),
             variables={
-                "left": "int",
-                "right": "int"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="-",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "float",
-                "right": "float"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="-",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "float",
-                "right": "int"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="-",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "int",
-                "right": "float"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         )
     ],
@@ -219,13 +219,13 @@ NEG_OPERATOR = pt.Operator(
     overloads=[
         pt.OperatorOverload(
             name="-",
-            return_type="int",
-            variables={"right": "int"}
+            return_type=pt.TypeSpec("int", 0, []),
+            variables={"right": pt.TypeSpec("int", 0, [])}
         ),
         pt.OperatorOverload(
             name="-",
-            return_type="float",
-            variables={"right": "float"}
+            return_type=pt.TypeSpec("float", 0, []),
+            variables={"right": pt.TypeSpec("float", 0, [])}
         )
     ],
     trigger="-",
@@ -262,34 +262,34 @@ TIMES_OPERATOR = pt.Operator(
     overloads=[
         pt.OperatorOverload(
             name="*",
-            return_type="int",
+            return_type=pt.TypeSpec("int", 0, []),
             variables={
-                "left": "int",
-                "right": "int"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="*",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "float",
-                "right": "float"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="*",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "float",
-                "right": "int"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name="*",
-            return_type="float",
+            return_type=pt.TypeSpec("float", 0, []),
             variables={
-                "left": "int",
-                "right": "float"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         )
     ],
@@ -336,11 +336,11 @@ TERNARY_OPERATOR = pt.Operator(
     overloads=[
         pt.OperatorOverload(
             name="?:",
-            return_type="$typename<T>",
+            return_type=pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
             variables={
-                "left": "bool",
-                "middle": "$typename<T>",
-                "right": "$typename<T>"
+                "left": pt.TypeSpec('bool', 0, []),
+                "middle": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
+                "right": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])])
             }
         )
     ],
@@ -379,34 +379,34 @@ GT_OPERATOR = pt.Operator(
     overloads=[
         pt.OperatorOverload(
             name=">",
-            return_type="bool",
+            return_type=pt.TypeSpec("bool", 0, []),
             variables={
-                "left": "int",
-                "right": "int"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name=">",
-            return_type="bool",
+            return_type=pt.TypeSpec("bool", 0, []),
             variables={
-                "left": "int",
-                "right": "float"
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         ),
         pt.OperatorOverload(
             name=">",
-            return_type="bool",
+            return_type=pt.TypeSpec("bool", 0, []),
             variables={
-                "left": "float",
-                "right": "int"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
             }
         ),
         pt.OperatorOverload(
             name=">",
-            return_type="bool",
+            return_type=pt.TypeSpec("bool", 0, []),
             variables={
-                "left": "float",
-                "right": "float"
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
             }
         )
     ],
@@ -444,9 +444,9 @@ PARENTHESES_OPERATOR = pt.Operator(
     overloads=[
         pt.OperatorOverload(
             name="()",
-            return_type="$typename<T>",
+            return_type=pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
             variables={
-                "inside": "$typename<T>"
+                "inside": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])])
             }
         )
     ],
@@ -465,7 +465,7 @@ IF_KEYWORD = pt.Keyword(
     structure=pt.Structure(
         component_specs={
             "condition": pt.StructureSpecComponent(base="expression", name="condition", other={}),
-            "body": pt.StructureSpecComponent(base="block", name="body", other={})
+            "body": pt.StructureSpecComponent(base="block", name="body", other={"scope": "new"})
         },
         component_defs=[
             pt.StructureComponent(

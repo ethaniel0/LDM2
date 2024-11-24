@@ -6,6 +6,12 @@
   },
 
   {
+    "type": "make_variable",
+    "name": "function",
+    "structure": "$typename $varname ( ) $body"
+  },
+
+  {
     "type": "expression_separator",
     "name": "semicolon",
     "value": ";"

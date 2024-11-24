@@ -83,7 +83,7 @@ class ParsingContext:
 class OperatorInstance:
     operator: Operator
     operands: list[ValueToken | OperatorInstance]  # List of parsed operands, each either a ValueToken or another OperatorInstance
-    result_type: str
+    result_type: TypeSpec
     parse_parent: OperatorInstance | None
     token: Token | None
 

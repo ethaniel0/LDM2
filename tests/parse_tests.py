@@ -88,6 +88,7 @@ class MyTestCase(unittest.TestCase):
         assert expr.value.value == '5'
         var_expr: ast_pt.ValueToken = mv.components['expr']
         assert var_expr.value.value == '5'
+        assert var_expr.var_type.name == 'int'
 
     def test_make_variable_with_simple_operator(self):
         source_code = "int x = 5 + 4"
@@ -104,6 +105,7 @@ class MyTestCase(unittest.TestCase):
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
+        assert expr.result_type.name == 'int'
         assert len(expr.operands) == 2
         assert isinstance(expr.operands[0], ast_pt.ValueToken)
         assert isinstance(expr.operands[1], ast_pt.ValueToken)
@@ -111,7 +113,7 @@ class MyTestCase(unittest.TestCase):
         assert expr.operands[1].value.value == '4'
 
     def test_make_variable_with_multiple_operator(self):
-        source_code = "int x = 5 + 4 * 6"
+        source_code = "int x = 5 + 4 * 6.5"
         tokens = TOKENIZER.tokenize(source_code)
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
@@ -124,10 +126,12 @@ class MyTestCase(unittest.TestCase):
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
+        assert expr.result_type.name == 'float'
         assert len(expr.operands) == 2
         assert isinstance(expr.operands[0], ast_pt.ValueToken)
         assert isinstance(expr.operands[1], ast_pt.OperatorInstance)
         assert expr.operands[0].value.value == '5'
+        assert expr.result_type.name == 'float'
 
         inner_op: ast_pt.OperatorInstance = expr.operands[1]
         assert inner_op.operator.name == '*'
@@ -135,7 +139,7 @@ class MyTestCase(unittest.TestCase):
         assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
         assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
         assert inner_op.operands[0].value.value == '4'
-        assert inner_op.operands[1].value.value == '6'
+        assert inner_op.operands[1].value.value == '6.5'
 
         source_code = "int x = 5 * 4 + 6"
         tokens = TOKENIZER.tokenize(source_code)
@@ -200,6 +204,7 @@ class MyTestCase(unittest.TestCase):
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '?:'
+        assert expr.result_type.name == 'int'
         assert len(expr.operands) == 3
         assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
         assert isinstance(expr.operands[1], ast_pt.ValueToken)
@@ -209,6 +214,7 @@ class MyTestCase(unittest.TestCase):
 
         inner_op: ast_pt.OperatorInstance = expr.operands[0]
         assert inner_op.operator.name == '>'
+        assert inner_op.result_type.name == 'bool'
         assert len(inner_op.operands) == 2
         assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
         assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
@@ -264,9 +270,12 @@ class MyTestCase(unittest.TestCase):
             overloads=[
                 pt.OperatorOverload(
                     name="weird +",
-                    return_type="int",
+                    return_type=pt.TypeSpec('int', 0, []),
                     variables={
-                        "x1": "int", "x2": "int", "x3": "int", "x4": "int"
+                        "x1": pt.TypeSpec('int', 0, []),
+                        "x2": pt.TypeSpec('int', 0, []),
+                        "x3": pt.TypeSpec('int', 0, []),
+                        "x4": pt.TypeSpec('int', 0, [])
                     }
                 ),
             ],
@@ -297,6 +306,7 @@ class MyTestCase(unittest.TestCase):
 
         inner_op: ast_pt.OperatorInstance = expr.operands[0]
         assert inner_op.operator.name == 'weird +'
+        assert inner_op.result_type.name == 'int'
         assert len(inner_op.operands) == 4
         assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
         assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
@@ -340,7 +350,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_multiline(self):
         source = '''
-        int x = 5 + 4;
+        int x = 5 + 4.5;
         int y = 6 * 3;
         '''
         tokens = TOKENIZER.tokenize(source)
@@ -365,9 +375,11 @@ class MyTestCase(unittest.TestCase):
         assert mv1.components['expr'].operator.name == '+'
         assert mv2.components['expr'].operator.name == '*'
 
+        assert mv1.components['expr'].result_type.name == 'float'
         assert mv1.components['expr'].operands[0].value.value == '5'
-        assert mv1.components['expr'].operands[1].value.value == '4'
+        assert mv1.components['expr'].operands[1].value.value == '4.5'
 
+        assert mv2.components['expr'].result_type.name == 'int'
         assert mv2.components['expr'].operands[0].value.value == '6'
         assert mv2.components['expr'].operands[1].value.value == '3'
 
@@ -441,12 +453,16 @@ class MyTestCase(unittest.TestCase):
         if (p < 12){
             int x = 5 + 4;
         }
+        
+        float func(){
+            int x = 9;
+        }
         """
         tokens = TOKENIZER.tokenize(source_code)
 
         ast = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
 
-        assert len(ast) == 2
+        assert len(ast) == 3
         assert isinstance(ast[0], ast_pt.MakeVariableInstance)
         assert isinstance(ast[1], ast_pt.KeywordInstance)
 
@@ -461,6 +477,10 @@ class MyTestCase(unittest.TestCase):
         assert len(if_inst.components) == 2
         assert isinstance(if_inst.components['condition'], ast_pt.OperatorInstance)
         assert isinstance(if_inst.components['body'], ast_pt.BlockInstance)
+
+        func: ast_pt.MakeVariableInstance = ast[2]
+        assert func.mv.name == 'function'
+
 
 
 if __name__ == '__main__':

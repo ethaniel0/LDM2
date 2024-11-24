@@ -3,7 +3,7 @@ from ldm.source_tokenizer.tokenize import Token, TokenType
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
                                    OperatorInstance, ValueToken)
 from ldm.lib_config2.parsing_types import StructureComponentType, TypeSpec, OperatorType
-
+from ldm.ast.type_checking import type_operator
 
 class ExpressionParser:
     def __init__(self, items: ParsingItems):
@@ -34,12 +34,12 @@ class ExpressionParser:
                     op.operator_type == OperatorType.UNARY_RIGHT or
                     op.operator_type == OperatorType.INTERNAL
                 ):
-                    possible_operators.append(OperatorInstance(op, [], '', None, token))
+                    possible_operators.append(OperatorInstance(op, [], TypeSpec('', 0, []), None, token))
                 elif has_left and (
                     op.operator_type == OperatorType.UNARY_LEFT or
                     op.operator_type == OperatorType.BINARY
                 ):
-                    possible_operators.append(OperatorInstance(op, [], '', None, token))
+                    possible_operators.append(OperatorInstance(op, [], TypeSpec('', 0, []), None, token))
 
         return possible_operators
 
@@ -246,9 +246,9 @@ class ExpressionParser:
 
     def parse(self, until="", singular=True) -> ValueToken | OperatorInstance | list[ValueToken | OperatorInstance]:
         self.workingOperator: ValueToken | OperatorInstance | None = None
-        self.stack = []
+        self.stack: list[ValueToken | OperatorInstance] = []
 
-        result = None
+        result: None | ValueToken | OperatorInstance = None
         while not self.tokens.done() and self.tokens.peek().type != TokenType.ExpressionSeparator:
             if until and self.tokens.peek().value == until:
                 break
@@ -268,7 +268,9 @@ class ExpressionParser:
             raise RuntimeError(f'Expression does not simplify to a singular value at {self.stack[0].token.line}')
 
         if len(self.stack) == 0 and self.workingOperator:
-            return self.__get_op_head()
+            op_head = self.__get_op_head()
+            type_operator(op_head, self.items)
+            return op_head
 
         if singular:
             return self.stack[0]
