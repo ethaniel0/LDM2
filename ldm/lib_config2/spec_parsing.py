@@ -64,10 +64,17 @@ def parse_structure_component(arg: dict[str, Any]) -> StructureSpecComponent:
     return StructureSpecComponent(arg['base'], arg['name'], other)
 
 
-def parse_make_variable(arg: dict[str, Any]) -> MakeVariable:
+def parse_make_variable(arg: dict[str, Any]) -> StructuredObject:
     components = [parse_structure_component(c) for c in arg['components']]
     components = {c.name: c for c in components}
-    return MakeVariable(arg['name'], Structure(components, []))
+    return_type = '$type'
+    var_name = '$varname'
+    return StructuredObject(
+        name=arg['name'],
+        structure=Structure(components, []),
+        value_type=string_to_typespec(return_type),
+        value_name=var_name
+    )
 
 
 def build_type_tree(primitive_types: dict[str, PrimitiveType]) -> list[TypeTreeNode]:
@@ -132,25 +139,41 @@ def parse_operator_overload(arg: dict[str, Any]) -> OperatorOverload:
     return OperatorOverload(name, return_typespec, other)
 
 
-def parse_keyword(arg: dict[str, Any]) -> Keyword:
+def parse_keyword(arg: dict[str, Any]) -> StructuredObject:
     name = arg['name']
-    components = {}
-    for item in arg['components']:
-        s = StructureSpecComponent(item['base'], item['name'], {})
-        for key in item:
-            if key not in ['base', 'name']:
-                s.other[key] = item[key]
-        components[item['name']] = s
+    components = [parse_structure_component(c) for c in arg['components']]
+    components = {c.name: c for c in components}
     structure = Structure(components, [])
-    return Keyword(name, structure, "")
+
+    return StructuredObject(
+        name=name,
+        structure=structure,
+        value_type=None,
+        value_name=None
+    )
+
+
+def parse_make_object(arg: dict[str, Any]) -> StructuredObject:
+    name = arg['name']
+    components = [parse_structure_component(c) for c in arg['components']]
+    components = {c.name: c for c in components}
+    structure = Structure(components, [])
+    return StructuredObject(
+        name=name,
+        structure=structure,
+        value_type=string_to_typespec(arg['value_type']),
+        value_name="$varname"
+    )
 
 
 def parse_spec(arg: list[dict[str, Any]]) -> Spec:
     primitive_types: dict[str, PrimitiveType] = {}
-    make_variables: dict[str, MakeVariable] = {}
+    structured_objects: dict[str, StructuredObject] = {}
+    # make_variables: dict[str, MakeVariable] = {}
+    # make_objects: dict[str, MakeObject] = {}
     operators: dict[str, Operator] = {}
     operator_overloads: list[OperatorOverload] = []
-    keywords: dict[str, Keyword] = {}
+    # keywords: dict[str, Keyword] = {}
     expression_separators: dict[str, ExpressionSeparator] = {}
     block_structures: dict[str, BlockStructure] = {}
 
@@ -167,7 +190,16 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                 primitive_types[vk.value_type].value_keywords.append(vk)
 
             case 'make_variable':
-                make_variables[item['name']] = parse_make_variable(item)
+                name = item['name']
+                if name in structured_objects:
+                    raise ValueError(f"Object {name} already exists")
+                structured_objects[name] = parse_make_variable(item)
+
+            case 'make_object':
+                name = item['name']
+                if name in structured_objects:
+                    raise ValueError(f"Object {name} already exists")
+                structured_objects[name] = parse_make_object(item)
                 
             case 'operator':
                 operators[item['name']] = parse_operator(item)
@@ -176,7 +208,10 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                 operator_overloads.append(parse_operator_overload(item))
 
             case 'keyword':
-                keywords[item['name']] = parse_keyword(item)
+                name = item['name']
+                if name in structured_objects:
+                    raise ValueError(f"Keyword {name} already exists")
+                structured_objects[name] = parse_keyword(item)
 
             case 'block':
                 spec_components = {}
@@ -210,5 +245,11 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                                                             InitializationType.LITERAL,
                                                             keyword.name)
 
-    return Spec(primitive_types, make_variables, init_formats, operators,
-                keywords, expression_separators, block_structures)
+    return Spec(
+        primitive_types=primitive_types,
+        structured_objects=structured_objects,
+        initializer_formats=init_formats,
+        operators=operators,
+        expression_separators=expression_separators,
+        block_structures=block_structures
+    )

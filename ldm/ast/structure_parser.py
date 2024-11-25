@@ -1,7 +1,8 @@
 from __future__ import annotations
 from ldm.source_tokenizer.tokenize import Token, TokenizerItems, Tokenizer
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
-                                   OperatorInstance, ValueToken, BlockInstance, KeywordInstance, MakeVariableInstance)
+                                   OperatorInstance, ValueToken, BlockInstance,
+                                   StructuredObjectInstance, NameInstance, TypenameInstance)
 from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent, TypeSpec
 from ldm.ast.expression_parser import ExpressionParser
 
@@ -9,13 +10,14 @@ from ldm.ast.expression_parser import ExpressionParser
 def to_typespec(token: Token) -> TypeSpec:
     return TypeSpec(token.value, 0, [])
 
+
 class StructureParser:
     def __init__(self, items: ParsingItems, tokenizer_items: TokenizerItems):
         self.items = items
         self.tokenizer_items = tokenizer_items
 
         self.structure_count = 0
-        self.parsed_variables: dict[str, Token | ValueToken | OperatorInstance | BlockInstance] = {}
+        self.parsed_variables: dict[str, NameInstance | TypenameInstance | BlockInstance | ValueToken | OperatorInstance] = {}
         self.context: ParsingContext = ParsingContext()
         self.tokens: TokenIterator = TokenIterator([])
 
@@ -27,7 +29,7 @@ class StructureParser:
         tn, _ = next(self.tokens)
         if tn.value not in self.items.config_spec.primitive_types:
             raise RuntimeError(f'{tn} not a type on line {tn.line}')
-        self.parsed_variables[var.name] = tn
+        self.parsed_variables[var.name] = TypenameInstance(TypeSpec(tn.value, 0, []))
         self.structure_count += 1
 
     def __handle_name(self, comp: StructureComponent, structure: Structure):
@@ -54,7 +56,7 @@ class StructureParser:
         elif var_type != 'any':
             raise RuntimeError(f'make-variable type "{var_type}" not recognized')
 
-        self.parsed_variables[var.name] = varname
+        self.parsed_variables[var.name] = NameInstance(varname.value)
         self.structure_count += 1
 
     def __handle_expression(self, var_index: int, structure: Structure):
@@ -73,7 +75,7 @@ class StructureParser:
         self.parsed_variables[var.name] = expr
         self.structure_count += 1
 
-    def __get_valid_blocks(self, block: StructureComponent) -> list[BlockInstance]:
+    def __get_valid_blocks(self) -> list[BlockInstance]:
         blocks = []
         for b in self.items.config_spec.block_structures.values():
             if b.structure.component_defs[0].component_type == StructureComponentType.String and \
@@ -83,8 +85,8 @@ class StructureParser:
                 raise NotImplementedError('Variable block structures not implemented')
         return blocks
 
-    def __handle_block(self, block: StructureComponent, local=False):
-        blocks = self.__get_valid_blocks(block)
+    def __handle_block(self, local=False):
+        blocks = self.__get_valid_blocks()
 
         cur_index = self.tokens.index
 
@@ -176,7 +178,7 @@ class StructureParser:
                 elif var.other['scope'] != 'global':
                     raise RuntimeError(f"Unknown scope {var.other['scope']} for block")
 
-            block = self.__handle_block(comp, local)
+            block = self.__handle_block(local)
             if block is not None:
                 self.parsed_variables[var.name] = block
                 self.structure_count += 1
@@ -212,23 +214,19 @@ class StructureParser:
 
         return self.parsed_variables
 
-    def __create_structure_list(self, tokens: TokenIterator, context: ParsingContext) -> list[KeywordInstance | MakeVariableInstance]:
+    def __create_structure_list(self, tokens: TokenIterator, context: ParsingContext) -> list[StructuredObjectInstance]:
         token = tokens.peek()
 
-        possible_keywords: list[KeywordInstance | MakeVariableInstance] = []
-        for kw in self.items.config_spec.keywords.values():
-            if kw.trigger == token.value:
-                kwi = KeywordInstance(kw, {}, token)
-                possible_keywords.append(kwi)
+        possible_structures: list[StructuredObjectInstance] = []
 
-        for mv in self.items.config_spec.make_variables.values():
-            first_component = mv.structure.component_defs[0]
+        for so in self.items.config_spec.structured_objects.values():
+            first_component = so.structure.component_defs[0]
             if first_component.component_type == StructureComponentType.String and first_component.value == token.value:
-                mvi = MakeVariableInstance(mv, {})
-                possible_keywords.append(mvi)
+                soi = StructuredObjectInstance(so, {})
+                possible_structures.append(soi)
 
             elif first_component.component_type == StructureComponentType.Variable:
-                spec_component = mv.structure.component_specs[first_component.value]
+                spec_component = so.structure.component_specs[first_component.value]
 
                 if spec_component.base == 'expression':
                     exp = ExpressionParser(self.items)
@@ -237,27 +235,27 @@ class StructureParser:
                     result = exp.parse_until_full_tree()
                     if result is not None:
                         component_dict = {spec_component.name: result}
-                        mvi = MakeVariableInstance(mv, component_dict)
-                        possible_keywords.append(mvi)
+                        soi = StructuredObjectInstance(so, component_dict)
+                        possible_structures.append(soi)
 
                 elif spec_component.base == 'typename':
                     if token.value in self.items.config_spec.primitive_types:
-                        component_dict = {spec_component.name: TypeSpec(token.value, 0, [])}
-                        mvi = MakeVariableInstance(mv, component_dict)
-                        possible_keywords.append(mvi)
+                        component_dict = {spec_component.name: token}
+                        soi = StructuredObjectInstance(so, component_dict)
+                        possible_structures.append(soi)
 
                 elif spec_component.base == 'name':
                     if context.has_global(token.value):
                         component_dict = {spec_component.name: context.get_global(token.value)}
-                        mvi = MakeVariableInstance(mv, component_dict)
-                        possible_keywords.append(mvi)
+                        soi = StructuredObjectInstance(so, component_dict)
+                        possible_structures.append(soi)
 
                 else:
                     raise ValueError(f"Unknown base {spec_component.base} for component {spec_component.name}")
 
-        return possible_keywords
+        return possible_structures
 
-    def parse(self, tokens: TokenIterator, context: ParsingContext, until="") -> list[KeywordInstance | MakeVariableInstance | OperatorInstance | ValueToken]:
+    def parse(self, tokens: TokenIterator, context: ParsingContext, until="") -> list[StructuredObjectInstance | OperatorInstance | ValueToken]:
         self.structure_count = 0
         self.parsed_variables: dict[str, Token] = {}
         self.context = context
@@ -271,7 +269,6 @@ class StructureParser:
             possible_structures = self.__create_structure_list(tokens, context)
 
             if len(possible_structures) == 0:
-                # evaluate as expression
                 exp = ExpressionParser(self.items)
                 exp.set_tokens_and_context(tokens, context)
                 result = exp.parse()
@@ -283,33 +280,27 @@ class StructureParser:
 
             cur_index = tokens.index
 
+            errors_found = []
+
             for structure in possible_structures:
                 try:
-                    if isinstance(structure, KeywordInstance):
-                        node = self.__parse_single_structure(tokens, structure.keyword.structure, context)
-                        structure.components = node
-                        working_structures.append((structure, node))
-                        token_nums.append(tokens.index)
-                        # ast_nodes.append(structure)
-
-                    elif isinstance(structure, MakeVariableInstance):
-                        node = self.__parse_single_structure(tokens, structure.mv.structure, context)
-                        structure.components = node
-                        working_structures.append((structure, node))
-                        token_nums.append(tokens.index)
-                        # ast_nodes.append(structure)
-                        # context.variables[structure.components['varname'].value] = to_typespec(structure.components['typename'])
-
+                    node = self.__parse_single_structure(tokens, structure.so.structure, context)
+                    structure.components = node
+                    working_structures.append((structure, node))
+                    token_nums.append(tokens.index)
                 except RuntimeError as e:
+                    errors_found.append(e)
                     pass
 
                 tokens.goto(cur_index)
 
             if len(working_structures) == 0:
-                raise RuntimeError(f'Could not parse structure at line {tokens.peek().line}')
+                if len(errors_found) == 1:
+                    raise errors_found[0]
+                raise RuntimeError(f'Could not parse structure starting with {tokens.peek()} at line {tokens.peek().line}')
 
             max_components = 0
-            max_structure = None
+            max_structure: None | tuple[StructuredObjectInstance, dict[str, NameInstance | TypenameInstance | BlockInstance | ValueToken | OperatorInstance]] = None
             max_index = 0
             for i in range(len(working_structures)):
                 if len(working_structures[i][1]) > max_components:
@@ -319,7 +310,14 @@ class StructureParser:
 
             ast_nodes.append(max_structure[0])
             tokens.goto(max_index)
-            if isinstance(max_structure[0], MakeVariableInstance):
-                context.variables[max_structure[1]['varname'].value] = to_typespec(max_structure[1]['typename'])
+            if max_structure[0].so.value_type:
+                name = max_structure[0].so.value_name
+                if name.startswith('$'):
+                    name = max_structure[1][name[1:]].value
+                so_type = max_structure[0].so.value_type
+                if so_type.name.startswith('$'):
+                    so_type = max_structure[1][so_type.name[1:]].value
+
+                context.variables[name] = so_type
 
         return ast_nodes

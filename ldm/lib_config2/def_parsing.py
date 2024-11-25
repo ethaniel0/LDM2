@@ -1,3 +1,5 @@
+from typing import Any
+
 from .parsing_types import *
 import re
 
@@ -98,53 +100,62 @@ def add_value_keyword_def(spec: Spec, arg: dict):
     spec.initializer_formats[typed_name] = init_format
 
 
-
 def add_keyword_def(spec: Spec, arg: dict):
     name = arg['name']
+    kname = 'keyword-'+name
     components = parse_structure_into_components(arg['structure'])
-    if name not in spec.keywords:
+    if kname not in spec.structured_objects:
         raise ValueError(f"Keyword {name} not found")
-    if len(spec.keywords[name].structure.component_defs) > 0:
+    if len(spec.structured_objects[kname].structure.component_defs) > 0:
         raise ValueError(f"Keyword {name} already has a definition")
-    spec.keywords[name].structure.component_defs = components
+    spec.structured_objects[kname].structure.component_defs = components
 
     trigger = get_trigger(components)
     if trigger == '':
         raise ValueError(f"Keyword {name} has no symbols")
 
-    spec.keywords[name].trigger = trigger
+
+def add_def_to_structured(type: str, arg: dict[str, Any], spec: Spec):
+    comp_name = arg['name']
+    if comp_name not in spec.structured_objects:
+        raise ValueError(f"{type} {comp_name} not found")
+    if len(spec.structured_objects[comp_name].structure.component_defs) > 0:
+        raise ValueError(f"{type} {comp_name} already has a definition")
+    components = parse_structure_into_components(arg['structure'])
+
+    if type == 'keyword':
+        trigger = get_trigger(components)
+        if trigger == '':
+            raise ValueError(f"{type} {comp_name} has no identifying symbols")
+    else:
+        has_non_expression_parameter = False
+        for comp in components:
+            component_specs = spec.structured_objects[comp_name].structure.component_specs
+            comp_type = component_specs[comp.value].base
+            if comp_type != 'expression':
+                has_non_expression_parameter = True
+                break
+        if not has_non_expression_parameter:
+            raise ValueError(f"{type} {comp_name} must have at least one non-expression parameter")
+
+    spec.structured_objects[comp_name].structure.component_defs = components
 
 
 def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
     for arg in args:
         comp_type = arg['type']
-        comp_name = arg['name']
 
-        match comp_type:
-            case 'make_variable':
-                if comp_name not in spec.make_variables:
-                    raise ValueError(f"Make variable {comp_name} not found")
-                if len(spec.make_variables[comp_name].structure.component_defs) > 0:
-                    raise ValueError(f"Make variable {comp_name} already has a definition")
-                components = parse_structure_into_components(arg['structure'])
-                spec.make_variables[comp_name].structure.component_defs = components
-                
-            case 'operator':
-                add_operator_def(spec, arg)
-
-            case 'value_keyword':
-                add_value_keyword_def(spec, arg)
-
-            case 'keyword':
-                add_keyword_def(spec, arg)
-
-            case 'expression_separator':
-                es = ExpressionSeparator(arg['name'], arg['value'])
-                spec.expression_separators[arg['value']] = es
-
-            case 'block':
-                components = parse_structure_into_components(arg['structure'])
-                spec.block_structures[arg['name']].structure.component_defs = components
-                
-            case _:
-                raise ValueError(f"Unknown component type {comp_type}")
+        if comp_type in ['make_variable', 'make_object', 'keyword']:
+            add_def_to_structured(comp_type, arg, spec)
+        elif comp_type == 'operator':
+            add_operator_def(spec, arg)
+        elif comp_type == 'value_keyword':
+            add_value_keyword_def(spec, arg)
+        elif comp_type == 'expression_separator':
+            es = ExpressionSeparator(arg['name'], arg['value'])
+            spec.expression_separators[arg['value']] = es
+        elif comp_type == 'block':
+            components = parse_structure_into_components(arg['structure'])
+            spec.block_structures[arg['name']].structure.component_defs = components
+        else:
+            raise ValueError(f"Unknown component type {comp_type}")

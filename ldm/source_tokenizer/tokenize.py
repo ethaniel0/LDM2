@@ -1,5 +1,5 @@
 from .tokenizer_types import Token, TokenType
-from ldm.lib_config2.parsing_types import PrimitiveType, Operator, ExpressionSeparator, Keyword
+from ldm.lib_config2.parsing_types import PrimitiveType, Operator, ExpressionSeparator
 from dataclasses import dataclass
 
 
@@ -7,7 +7,6 @@ from dataclasses import dataclass
 class TokenizerItems:
     primitive_types: dict[str, PrimitiveType]
     operators: dict[str, Operator]
-    keywords: dict[str, Keyword]
     expression_separators: dict[str, ExpressionSeparator]
 
 
@@ -75,10 +74,6 @@ class Tokenizer:
         is_operator = any(o.trigger == self.running_str for o in self.items.operators.values())
         if is_operator:
             return TokenType.Operator
-
-        is_keyword = any(k.trigger == self.running_str for k in self.items.keywords.values())
-        if is_keyword:
-            return TokenType.Keyword
 
         # check is value keyword
         for pt in self.items.primitive_types.values():

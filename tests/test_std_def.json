@@ -2,13 +2,14 @@
   {
     "type": "make_variable",
     "name": "standard",
-    "structure": "$typename $varname = $expr"
+    "structure": "$type $varname = $expr"
   },
 
+
   {
-    "type": "make_variable",
+    "type": "make_object",
     "name": "function",
-    "structure": "$typename $varname ( ) $body"
+    "structure": "$type $varname ( ) $body"
   },
 
   {

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, Keyword, MakeVariable, BlockStructure
+from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, BlockStructure, StructuredObject
 
 
 class TokenIterator:
@@ -107,33 +107,26 @@ class ValueToken:
         return f"{{{self.value.value}}}"
 
 
-class Structured:
-    components: dict[str, Any]
+@dataclass
+class NameInstance:
+    value: str
 
 
 @dataclass
-class MakeVariableInstance:
-    mv: MakeVariable
-    components: dict[str, Token | ValueToken | OperatorInstance]
-
-    def __str__(self):
-        return f"MakeVariableInstance({self.mv.name} {self.components})"
-
-    def __repr__(self):
-        return f"MakeVariableInstance({self.mv.name})"
+class TypenameInstance:
+    value: TypeSpec
 
 
 @dataclass
-class KeywordInstance:
-    keyword: Keyword
-    components: dict[str, Token | ValueToken | OperatorInstance]
-    token: Token | None
+class StructuredObjectInstance:
+    so: StructuredObject
+    components: dict[str, NameInstance | TypenameInstance | BlockInstance | ValueToken | OperatorInstance]
 
     def __str__(self):
-        return f"KeywordInstance({self.keyword.name})"
+        return f"StructuredObjectInstance({self.so.name} {self.components})"
 
     def __repr__(self):
-        return f"KeywordInstance({self.keyword.name})"
+        return f"StructuredObjectInstance({self.so.name})"
 
 
 @dataclass

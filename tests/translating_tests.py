@@ -37,10 +37,11 @@ class MyTestCase(unittest.TestCase):
         spec, translation = load_setup()
         source_code = "int x = 9"
 
-        tokenizer_items = TokenizerItems(spec.primitive_types,
-                                         spec.operators,
-                                         spec.keywords,
-                                         spec.expression_separators)
+        tokenizer_items = TokenizerItems(
+            primitive_types=spec.primitive_types,
+            operators=spec.operators,
+            expression_separators=spec.expression_separators
+        )
         tokenizer = Tokenizer(tokenizer_items)
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
@@ -57,7 +58,6 @@ class MyTestCase(unittest.TestCase):
         tokenizer_items = TokenizerItems(
             spec.primitive_types,
             spec.operators,
-            spec.keywords,
             spec.expression_separators
         )
         tokenizer = Tokenizer(tokenizer_items)
@@ -72,12 +72,12 @@ class MyTestCase(unittest.TestCase):
         print()
         spec, translation = load_setup()
         source_code = """
-        bool x = 12;
+        int x = 12;
         if (x < 14) {
             if (x < 14) {
             int zx = 69;
             if (x < 14) {}
-            float cwdeas = x ? 69 : 420;
+            float cwdeas = x < 14 ? 69 : 420;
             if (x < 14) {
             if (x < 14) {
             if (x < 14) {
@@ -94,7 +94,6 @@ class MyTestCase(unittest.TestCase):
         tokenizer_items = TokenizerItems(
             spec.primitive_types,
             spec.operators,
-            spec.keywords,
             spec.expression_separators
         )
         tokenizer = Tokenizer(tokenizer_items)

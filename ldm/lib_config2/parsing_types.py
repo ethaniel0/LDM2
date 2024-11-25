@@ -79,9 +79,11 @@ class StructureSpecComponent:
 
 
 @dataclass
-class MakeVariable:
+class StructuredObject:
     name: str
     structure: Structure
+    value_type: TypeSpec | None
+    value_name: str | None
 
 
 @dataclass
@@ -180,17 +182,6 @@ class Operator:
         # Check if all variables in overload exist in structure
         return structure_vars == overload_vars
 
-
-@dataclass
-class Keyword:
-    name: str
-    '''The name of the keyword. Is only used for bookkeeping, not for parsing.'''
-    structure: Structure
-    '''The structure of the keyword. Contains the components and their definitions.'''
-    trigger: str
-    '''The trigger of the keyword. Once found, the keyword is created and structure parsed'''
-
-
 @dataclass
 class ExpressionSeparator:
     name: str
@@ -207,14 +198,12 @@ class BlockStructure:
 class Spec:
     primitive_types: dict[str, PrimitiveType]
     '''{typename: PrimitiveType}'''
-    make_variables: dict[str, MakeVariable]
-    '''{MakeVariable name: MakeVariable}'''
+    structured_objects: dict[str, StructuredObject]
+    '''{StructuredObject name: StructuredObject}'''
     initializer_formats: dict[str, InitializationSpec]
     '''{format name ($...) or value keyword: InitializationSpec}'''
     operators: dict[str, Operator]
     '''{Operator name (NOT trigger): Operator}'''
-    keywords: dict[str, Keyword]
-    '''{Keyword name: Keyword}'''
     expression_separators: dict[str, ExpressionSeparator]
     '''{ExpressionSeparator name: ExpressionSeparator}'''
     block_structures: dict[str, BlockStructure]

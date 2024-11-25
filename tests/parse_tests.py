@@ -77,10 +77,11 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
-        assert mv.components['typename'].value == 'int'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
+        assert isinstance(mv.components['type'], ast_pt.TypenameInstance)
+        assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'x'
 
         expr: ast_pt.ValueToken = mv.components['expr']
@@ -96,10 +97,10 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
-        assert mv.components['typename'].value == 'int'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
+        assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'x'
 
         expr: ast_pt.ValueToken = mv.components['expr']
@@ -118,10 +119,10 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
-        assert mv.components['typename'].value == 'int'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
+        assert mv.components['type'].value.name == 'int'
 
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
@@ -146,10 +147,10 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
-        assert mv.components['typename'].value == 'int'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
+        assert mv.components['type'].value.name == 'int'
 
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
@@ -173,9 +174,9 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
 
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
@@ -197,9 +198,9 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
 
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
@@ -295,9 +296,9 @@ class MyTestCase(unittest.TestCase):
         del SPEC.operators['weird +']
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
 
         expr: ast_pt.ValueToken = mv.components['expr']
         assert isinstance(expr, ast_pt.OperatorInstance)
@@ -325,9 +326,9 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
 
         expr: ast_pt.ValueToken = mv.components['expr']
 
@@ -357,17 +358,17 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 2
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        assert isinstance(ast[1], ast_pt.MakeVariableInstance)
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        assert isinstance(ast[1], ast_pt.StructuredObjectInstance)
 
-        mv1: ast_pt.MakeVariableInstance = ast[0]
-        mv2: ast_pt.MakeVariableInstance = ast[1]
+        mv1: ast_pt.StructuredObjectInstance = ast[0]
+        mv2: ast_pt.StructuredObjectInstance = ast[1]
 
-        assert mv1.mv.name == 'standard'
-        assert mv2.mv.name == 'standard'
+        assert mv1.so.name == 'standard'
+        assert mv2.so.name == 'standard'
 
-        assert mv1.components['typename'].value == 'int'
-        assert mv2.components['typename'].value == 'int'
+        assert mv1.components['type'].value.name == 'int'
+        assert mv2.components['type'].value.name == 'int'
 
         assert mv1.components['varname'].value == 'x'
         assert mv2.components['varname'].value == 'y'
@@ -417,8 +418,8 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.KeywordInstance)
-        assert ast[0].keyword.name == 'if'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        assert ast[0].so.name == 'if'
 
         if_body = ast[0].components['body']
         assert isinstance(if_body, ast_pt.BlockInstance)
@@ -436,15 +437,15 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
-        assert isinstance(ast[0], ast_pt.KeywordInstance)
-        assert ast[0].keyword.name == 'if'
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        assert ast[0].so.name == 'if'
 
         if_body = ast[0].components['body']
         assert isinstance(if_body, ast_pt.BlockInstance)
         assert len(if_body.components) == 1
         if_body_body = if_body.components['body']
         assert len(if_body_body) == 1
-        assert isinstance(if_body_body[0], ast_pt.MakeVariableInstance)
+        assert isinstance(if_body_body[0], ast_pt.StructuredObjectInstance)
 
     def test_parsing(self):
         spec = load_setup()
@@ -463,23 +464,23 @@ class MyTestCase(unittest.TestCase):
         ast = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
 
         assert len(ast) == 3
-        assert isinstance(ast[0], ast_pt.MakeVariableInstance)
-        assert isinstance(ast[1], ast_pt.KeywordInstance)
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        assert isinstance(ast[1], ast_pt.StructuredObjectInstance)
 
-        mv: ast_pt.MakeVariableInstance = ast[0]
-        assert mv.mv.name == 'standard'
-        assert mv.components['typename'].value == 'int'
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
+        assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'p'
         assert mv.components['expr'].value.value == '14'
 
-        if_inst: ast_pt.KeywordInstance = ast[1]
-        assert if_inst.keyword.name == 'if'
+        if_inst: ast_pt.StructuredObjectInstance = ast[1]
+        assert if_inst.so.name == 'if'
         assert len(if_inst.components) == 2
         assert isinstance(if_inst.components['condition'], ast_pt.OperatorInstance)
         assert isinstance(if_inst.components['body'], ast_pt.BlockInstance)
 
-        func: ast_pt.MakeVariableInstance = ast[2]
-        assert func.mv.name == 'function'
+        func: ast_pt.StructuredObjectInstance = ast[2]
+        assert func.so.name == 'function'
 
 
 

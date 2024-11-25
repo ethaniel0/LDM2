@@ -35,12 +35,12 @@ BOOL_TYPE = pt.PrimitiveType(
     ],
 )
 
-MAKE_VARIABLE = pt.MakeVariable(
+MAKE_VARIABLE = pt.StructuredObject(
     name="standard",
     structure=pt.Structure(
         component_specs={
             "typename": pt.StructureSpecComponent(base="typename",
-                                                  name="typename",
+                                                  name="type",
                                                   other={}),
             "varname": pt.StructureSpecComponent(base="name",
                                                  name="varname",
@@ -67,7 +67,9 @@ MAKE_VARIABLE = pt.MakeVariable(
                 value="expr"
             )
         ]
-    )
+    ),
+    value_type=pt.TypeSpec("type", 0, []),
+    value_name="$varname"
 )
 
 PLUS_OPERATOR = pt.Operator(
@@ -460,12 +462,12 @@ PARENTHESES_OPERATOR.calc_num_variables()
 SEMICOLON = pt.ExpressionSeparator("semicolon", ";")
 
 
-IF_KEYWORD = pt.Keyword(
+IF_KEYWORD = pt.StructuredObject(
     name="if",
     structure=pt.Structure(
         component_specs={
             "condition": pt.StructureSpecComponent(base="expression", name="condition", other={}),
-            "body": pt.StructureSpecComponent(base="block", name="body", other={"scope": "new"})
+            "body": pt.StructureSpecComponent(base="block", name="body", other={"scope": "global"})
         },
         component_defs=[
             pt.StructureComponent(
@@ -490,7 +492,8 @@ IF_KEYWORD = pt.Keyword(
             ),
         ]
     ),
-    trigger="if"
+    value_type=None,
+    value_name=None
 )
 
 SPEC = pt.Spec(
@@ -499,8 +502,9 @@ SPEC = pt.Spec(
         "float": FLOAT_TYPE,
         "bool": BOOL_TYPE
     },
-    make_variables={
-        "standard": MAKE_VARIABLE
+    structured_objects={
+        "make_variable-standard": MAKE_VARIABLE,
+        'keyword-if': IF_KEYWORD
     },
     initializer_formats={
         "$int": pt.InitializationSpec(
@@ -533,7 +537,6 @@ SPEC = pt.Spec(
         ">": GT_OPERATOR,
         "()": PARENTHESES_OPERATOR
     },
-    keywords={"if": IF_KEYWORD},
     expression_separators={";": SEMICOLON},
     block_structures={
         "main": pt.BlockStructure(
@@ -564,7 +567,6 @@ SPEC = pt.Spec(
 TOKENIZER_ITEMS = TokenizerItems(
     primitive_types=SPEC.primitive_types,
     operators=SPEC.operators,
-    keywords=SPEC.keywords,
     expression_separators=SPEC.expression_separators
 )
 TOKENIZER = Tokenizer(TOKENIZER_ITEMS)

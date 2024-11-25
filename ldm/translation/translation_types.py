@@ -50,13 +50,6 @@ def parse_translate_into_components(structure: str) -> list[StructureComponent]:
 
 
 @dataclass
-class MakeVariableTranslation:
-    type: str
-    name: str
-    translate: list[StructureComponent]
-
-
-@dataclass
 class PrimitiveTypeTranslation:
     type: str
     name: str
@@ -78,7 +71,7 @@ class OperatorTranslation:
 
 
 @dataclass
-class KeywordTranslation:
+class StructuredObjectTranslation:
     type: str
     name: str
     translate: list[StructureComponent]

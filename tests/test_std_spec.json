@@ -76,6 +76,15 @@
     "is": "",
     "methods": []
   },
+  {
+    "type": "primitive_type",
+    "name": "function",
+    "initialize": {
+      "type": "$function"
+    },
+    "is": "",
+    "methods": []
+  },
 
 
   {
@@ -84,7 +93,7 @@
     "components": [
       {
         "base": "typename",
-        "name": "typename"
+        "name": "type"
       },
       {
         "base": "name",
@@ -99,12 +108,12 @@
   },
 
   {
-    "type": "make_variable",
+    "type": "make_object",
     "name": "function",
     "components": [
       {
         "base": "typename",
-        "name": "typename"
+        "name": "type"
       },
       {
         "base": "name",
@@ -116,7 +125,8 @@
         "name": "body",
         "scope": "local"
       }
-    ]
+    ],
+    "value_type": "function<$typename>"
   },
 
   {
