@@ -9,7 +9,13 @@
   {
     "type": "make_object",
     "name": "function",
-    "structure": "$type $varname ( ) $body"
+    "structure": "$type $varname ( $arguments ) $body",
+    "component_structures": {
+      "arguments": {
+        "structure": "$type $varname",
+        "separator": ","
+      }
+    }
   },
 
   {

@@ -58,10 +58,37 @@ def parse_value_keyword(arg: dict[str, Any]) -> ValueKeyword:
 
 def parse_structure_component(arg: dict[str, Any]) -> StructureSpecComponent:
     other = {}
+
+    base_type = ComponentType.UNKNOWN
+
+    component_type_map = {
+        'typename': ComponentType.TYPENAME,
+        'name': ComponentType.NAME,
+        'expression': ComponentType.EXPRESSION,
+        'expressions': ComponentType.EXPRESSIONS,
+        'block': ComponentType.BLOCK,
+        'repeated_element': ComponentType.REPEATED_ELEMENT
+    }
+
+    for s, e in component_type_map.items():
+        if arg['base'] == s:
+            base_type = e
+            break
+
+    if base_type == ComponentType.UNKNOWN:
+        raise ValueError(f"Unknown base type {arg['base']}")
+
     for k, v in arg.items():
         if k not in ['base', 'name']:
-            other[k] = v
-    return StructureSpecComponent(arg['base'], arg['name'], other)
+            if base_type == ComponentType.REPEATED_ELEMENT and k == 'components':
+                other[k] = {c['name']: parse_structure_component(c) for c in v}
+            else:
+                other[k] = v
+
+    if base_type == ComponentType.REPEATED_ELEMENT and 'components' not in other:
+        raise ValueError(f"Repeated element {arg['name']} must have components")
+
+    return StructureSpecComponent(base_type, arg['name'], other)
 
 
 def parse_make_variable(arg: dict[str, Any]) -> StructuredObject:
@@ -169,11 +196,8 @@ def parse_make_object(arg: dict[str, Any]) -> StructuredObject:
 def parse_spec(arg: list[dict[str, Any]]) -> Spec:
     primitive_types: dict[str, PrimitiveType] = {}
     structured_objects: dict[str, StructuredObject] = {}
-    # make_variables: dict[str, MakeVariable] = {}
-    # make_objects: dict[str, MakeObject] = {}
     operators: dict[str, Operator] = {}
     operator_overloads: list[OperatorOverload] = []
-    # keywords: dict[str, Keyword] = {}
     expression_separators: dict[str, ExpressionSeparator] = {}
     block_structures: dict[str, BlockStructure] = {}
 
@@ -200,6 +224,12 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                 if name in structured_objects:
                     raise ValueError(f"Object {name} already exists")
                 structured_objects[name] = parse_make_object(item)
+
+            case 'keyword':
+                name = item['name']
+                if name in structured_objects:
+                    raise ValueError(f"Keyword {name} already exists")
+                structured_objects[name] = parse_keyword(item)
                 
             case 'operator':
                 operators[item['name']] = parse_operator(item)
@@ -207,11 +237,7 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
             case 'operator_overload':
                 operator_overloads.append(parse_operator_overload(item))
 
-            case 'keyword':
-                name = item['name']
-                if name in structured_objects:
-                    raise ValueError(f"Keyword {name} already exists")
-                structured_objects[name] = parse_keyword(item)
+
 
             case 'block':
                 spec_components = {}

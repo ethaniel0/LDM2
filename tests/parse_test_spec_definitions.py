@@ -39,13 +39,13 @@ MAKE_VARIABLE = pt.StructuredObject(
     name="standard",
     structure=pt.Structure(
         component_specs={
-            "typename": pt.StructureSpecComponent(base="typename",
+            "typename": pt.StructureSpecComponent(base=pt.ComponentType.TYPENAME,
                                                   name="type",
                                                   other={}),
-            "varname": pt.StructureSpecComponent(base="name",
+            "varname": pt.StructureSpecComponent(base=pt.ComponentType.NAME,
                                                  name="varname",
                                                  other={"type": "new-local"}),
-            "expr": pt.StructureSpecComponent(base="expression",
+            "expr": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
                                               name="expr",
                                               other={})
         },
@@ -77,8 +77,8 @@ PLUS_OPERATOR = pt.Operator(
     precedence=6,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base="operator_value", name="left", other={}),
-            "right": pt.StructureSpecComponent(base="operator_value", name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -141,8 +141,8 @@ MINUS_OPERATOR = pt.Operator(
     precedence=6,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base="operator_value", name="left", other={}),
-            "right": pt.StructureSpecComponent(base="operator_value", name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -205,7 +205,7 @@ NEG_OPERATOR = pt.Operator(
     precedence=3,
     structure=pt.Structure(
         component_specs={
-            "right": pt.StructureSpecComponent(base="operator_value", name="right", other={})
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -243,8 +243,8 @@ TIMES_OPERATOR = pt.Operator(
     precedence=5,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base="operator_value", name="left", other={}),
-            "right": pt.StructureSpecComponent(base="operator_value", name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -308,9 +308,9 @@ TERNARY_OPERATOR = pt.Operator(
     precedence=16,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base="operator_value", name="left", other={}),
-            "middle": pt.StructureSpecComponent(base="operator_value", name="middle", other={}),
-            "right": pt.StructureSpecComponent(base="operator_value", name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
+            "middle": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="middle", other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -359,8 +359,8 @@ GT_OPERATOR = pt.Operator(
     precedence=9,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base="operator_value", name="left", other={}),
-            "right": pt.StructureSpecComponent(base="operator_value", name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -425,7 +425,7 @@ PARENTHESES_OPERATOR = pt.Operator(
     precedence=0,
     structure=pt.Structure(
         component_specs={
-            "inside": pt.StructureSpecComponent(base="operator_value", name="inside", other={}),
+            "inside": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="inside", other={}),
         },
         component_defs=[
             pt.StructureComponent(
@@ -466,8 +466,8 @@ IF_KEYWORD = pt.StructuredObject(
     name="if",
     structure=pt.Structure(
         component_specs={
-            "condition": pt.StructureSpecComponent(base="expression", name="condition", other={}),
-            "body": pt.StructureSpecComponent(base="block", name="body", other={"scope": "global"})
+            "condition": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION, name="condition", other={}),
+            "body": pt.StructureSpecComponent(base=pt.ComponentType.BLOCK, name="body", other={"scope": "global"})
         },
         component_defs=[
             pt.StructureComponent(
@@ -543,7 +543,7 @@ SPEC = pt.Spec(
             name="main",
             structure=pt.Structure(
                 component_specs={
-                    "body": pt.StructureSpecComponent(base="block", name="body", other={})
+                    "body": pt.StructureSpecComponent(base=pt.ComponentType.BLOCK, name="body", other={})
                 },
                 component_defs=[
                     pt.StructureComponent(

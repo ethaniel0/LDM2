@@ -84,10 +84,10 @@ class MyTestCase(unittest.TestCase):
         assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'x'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
         assert isinstance(expr, ast_pt.ValueToken)
         assert expr.value.value == '5'
-        var_expr: ast_pt.ValueToken = mv.components['expr']
+        var_expr: ast_pt.ValueToken = mv.components['expr'].value
         assert var_expr.value.value == '5'
         assert var_expr.var_type.name == 'int'
 
@@ -103,7 +103,7 @@ class MyTestCase(unittest.TestCase):
         assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'x'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert expr.result_type.name == 'int'
@@ -124,7 +124,7 @@ class MyTestCase(unittest.TestCase):
         assert mv.so.name == 'standard'
         assert mv.components['type'].value.name == 'int'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert expr.result_type.name == 'float'
@@ -152,7 +152,7 @@ class MyTestCase(unittest.TestCase):
         assert mv.so.name == 'standard'
         assert mv.components['type'].value.name == 'int'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert len(expr.operands) == 2
@@ -178,7 +178,7 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '-'
         assert len(expr.operands) == 2
@@ -202,7 +202,7 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '?:'
         assert expr.result_type.name == 'int'
@@ -228,10 +228,10 @@ class MyTestCase(unittest.TestCase):
             precedence=16,
             structure=pt.Structure(
                 component_specs={
-                    "x1": pt.StructureSpecComponent(base="operator_value", name="x1", other={}),
-                    "x2": pt.StructureSpecComponent(base="operator_value", name="x2", other={}),
-                    "x3": pt.StructureSpecComponent(base="operator_value", name="x3", other={}),
-                    "x4": pt.StructureSpecComponent(base="operator_value", name="x4", other={})
+                    "x1": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x1", other={}),
+                    "x2": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x2", other={}),
+                    "x3": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x3", other={}),
+                    "x4": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x4", other={})
                 },
                 component_defs=[
                     pt.StructureComponent(
@@ -300,7 +300,7 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '+'
         assert len(expr.operands) == 2
@@ -330,7 +330,7 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr']
+        expr: ast_pt.ValueToken = mv.components['expr'].value
 
         assert isinstance(expr, ast_pt.OperatorInstance)
         assert expr.operator.name == '*'
@@ -373,16 +373,16 @@ class MyTestCase(unittest.TestCase):
         assert mv1.components['varname'].value == 'x'
         assert mv2.components['varname'].value == 'y'
 
-        assert mv1.components['expr'].operator.name == '+'
-        assert mv2.components['expr'].operator.name == '*'
+        assert mv1.components['expr'].value.operator.name == '+'
+        assert mv2.components['expr'].value.operator.name == '*'
 
-        assert mv1.components['expr'].result_type.name == 'float'
-        assert mv1.components['expr'].operands[0].value.value == '5'
-        assert mv1.components['expr'].operands[1].value.value == '4.5'
+        assert mv1.components['expr'].value.result_type.name == 'float'
+        assert mv1.components['expr'].value.operands[0].value.value == '5'
+        assert mv1.components['expr'].value.operands[1].value.value == '4.5'
 
-        assert mv2.components['expr'].result_type.name == 'int'
-        assert mv2.components['expr'].operands[0].value.value == '6'
-        assert mv2.components['expr'].operands[1].value.value == '3'
+        assert mv2.components['expr'].value.result_type.name == 'int'
+        assert mv2.components['expr'].value.operands[0].value.value == '6'
+        assert mv2.components['expr'].value.operands[1].value.value == '3'
 
     def test_multiline_fails_when_no_expression_separators(self):
         source = '''
@@ -422,9 +422,9 @@ class MyTestCase(unittest.TestCase):
         assert ast[0].so.name == 'if'
 
         if_body = ast[0].components['body']
-        assert isinstance(if_body, ast_pt.BlockInstance)
-        assert len(if_body.components) == 1
-        if_body_body = if_body.components['body']
+        assert isinstance(if_body.value, ast_pt.BlockInstance)
+        assert len(if_body.value.components) == 1
+        if_body_body = if_body.value.components['body']
         assert len(if_body_body) == 0
 
     def test_if_not_empty(self):
@@ -441,9 +441,9 @@ class MyTestCase(unittest.TestCase):
         assert ast[0].so.name == 'if'
 
         if_body = ast[0].components['body']
-        assert isinstance(if_body, ast_pt.BlockInstance)
-        assert len(if_body.components) == 1
-        if_body_body = if_body.components['body']
+        assert isinstance(if_body.value, ast_pt.BlockInstance)
+        assert len(if_body.value.components) == 1
+        if_body_body = if_body.value.components['body']
         assert len(if_body_body) == 1
         assert isinstance(if_body_body[0], ast_pt.StructuredObjectInstance)
 
@@ -455,7 +455,7 @@ class MyTestCase(unittest.TestCase):
             int x = 5 + 4;
         }
         
-        float func(){
+        float func(int a, bool b){
             int x = 9;
         }
         """
@@ -471,17 +471,28 @@ class MyTestCase(unittest.TestCase):
         assert mv.so.name == 'standard'
         assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'p'
-        assert mv.components['expr'].value.value == '14'
+        assert mv.components['expr'].value.value.value == '14'
 
         if_inst: ast_pt.StructuredObjectInstance = ast[1]
         assert if_inst.so.name == 'if'
         assert len(if_inst.components) == 2
-        assert isinstance(if_inst.components['condition'], ast_pt.OperatorInstance)
-        assert isinstance(if_inst.components['body'], ast_pt.BlockInstance)
+        assert isinstance(if_inst.components['condition'].value, ast_pt.OperatorInstance)
+        assert isinstance(if_inst.components['body'].value, ast_pt.BlockInstance)
 
         func: ast_pt.StructuredObjectInstance = ast[2]
         assert func.so.name == 'function'
+        assert func.components['type'].value.name == 'float'
+        assert func.components['varname'].value == 'func'
+        assert isinstance(func.components['body'].value, ast_pt.BlockInstance)
+        assert len(func.components['body'].value.components) == 1
+        assert isinstance(func.components['body'].value.components['body'][0], ast_pt.StructuredObjectInstance)
 
+        assert len(func.components['arguments'].value) == 2
+        arguments = func.components['arguments'].value
+        assert arguments[0]['type'].value.name == 'int'
+        assert arguments[0]['varname'].value == 'a'
+        assert arguments[1]['type'].value.name == 'bool'
+        assert arguments[1]['varname'].value == 'b'
 
 
 if __name__ == '__main__':

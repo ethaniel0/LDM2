@@ -1,21 +1,24 @@
+from __future__ import annotations
 from enum import Enum
 from dataclasses import dataclass
 
 
-class StructureComponentType(Enum):
+class TranslationStructureComponentType(Enum):
     String = 1
     Variable = 2
     Whitespace = 3
 
 
 @dataclass
-class StructureComponent:
-    component_type: StructureComponentType
+class TranslationStructureComponent:
+    component_type: TranslationStructureComponentType
     value: str
+    inner_structure: list[TranslationStructureComponent] | None = None
+    inner_fields: dict[str, str] | None = None
 
 
-def parse_translate_into_components(structure: str) -> list[StructureComponent]:
-    components: list[StructureComponent] = []
+def parse_translate_into_components(structure: str) -> list[TranslationStructureComponent]:
+    components: list[TranslationStructureComponent] = []
 
     running_word = ''
     is_var = False
@@ -24,16 +27,16 @@ def parse_translate_into_components(structure: str) -> list[StructureComponent]:
         nonlocal running_word, is_var
         if running_word != '':
             if is_var:
-                components.append(StructureComponent(StructureComponentType.Variable, running_word[1:]))
+                components.append(TranslationStructureComponent(TranslationStructureComponentType.Variable, running_word[1:]))
             else:
-                components.append(StructureComponent(StructureComponentType.String, running_word))
+                components.append(TranslationStructureComponent(TranslationStructureComponentType.String, running_word))
         running_word = ''
         is_var = False
 
     for char in (structure + ' '):
         if char in ' \t\n\r':
             add_component()
-            components.append(StructureComponent(StructureComponentType.Whitespace, char))
+            components.append(TranslationStructureComponent(TranslationStructureComponentType.Whitespace, char))
 
         elif running_word == '' and char == '$':
             running_word = char
@@ -67,19 +70,19 @@ class ValueKeywordTranslation:
 class OperatorTranslation:
     type: str
     name: str
-    translate: list[StructureComponent]
+    translate: list[TranslationStructureComponent]
 
 
 @dataclass
 class StructuredObjectTranslation:
     type: str
     name: str
-    translate: list[StructureComponent]
+    translate: list[TranslationStructureComponent]
 
 
 @dataclass
 class BlockTranslation:
     type: str
     name: str
-    translate: list[StructureComponent]
+    translate: list[TranslationStructureComponent]
     inner_indent: int

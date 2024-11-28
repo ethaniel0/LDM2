@@ -43,6 +43,18 @@
   },
 
   {
+    "type": "make_object",
+    "name": "function",
+    "translate": "def $varname ( $arguments ) $body",
+    "component_structures": {
+      "arguments": {
+        "translate": "$varname: $type",
+        "separator": ", "
+      }
+    }
+  },
+
+  {
     "type": "block",
     "name": "main",
     "translate": ":\n$body",

@@ -26,7 +26,7 @@ def load_setup():
 
     with open(python_file) as f:
         translation_data = json.load(f)
-        translation = TranslationItems(translation_data)
+        translation = TranslationItems(translation_data, spec)
 
     return spec, translation
 
@@ -46,7 +46,7 @@ class MyTestCase(unittest.TestCase):
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
         ast = parse(tokens, parsing_items, tokenizer_items)
-        code = translate(ast, parsing_items, translation)
+        code = translate(ast, translation)
         print('code:')
         print(code)
 
@@ -64,7 +64,7 @@ class MyTestCase(unittest.TestCase):
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
         ast = parse(tokens, parsing_items, tokenizer_items)
-        code = translate(ast, parsing_items, translation)
+        code = translate(ast, translation)
         print('code:')
         print(code)
 
@@ -74,21 +74,12 @@ class MyTestCase(unittest.TestCase):
         source_code = """
         int x = 12;
         if (x < 14) {
-            if (x < 14) {
-            int zx = 69;
-            if (x < 14) {}
-            float cwdeas = x < 14 ? 69 : 420;
-            if (x < 14) {
-            if (x < 14) {
-            if (x < 14) {
-            if (x < 14) {
-            int y = 14;
+            x = 14;
         }
-        }
-        }
-        }
-        }
-        }
+        
+        int add(int a, int b){
+            int x = 6;
+        } 
         """
 
         tokenizer_items = TokenizerItems(
@@ -100,7 +91,7 @@ class MyTestCase(unittest.TestCase):
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
         ast = parse(tokens, parsing_items, tokenizer_items)
-        code = translate(ast, parsing_items, translation)
+        code = translate(ast, translation)
         print('code:')
         print(code)
 

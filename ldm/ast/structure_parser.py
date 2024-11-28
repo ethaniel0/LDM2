@@ -1,14 +1,18 @@
 from __future__ import annotations
+
+from typing import Any
+
 from ldm.source_tokenizer.tokenize import Token, TokenizerItems, Tokenizer
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
                                    OperatorInstance, ValueToken, BlockInstance,
-                                   StructuredObjectInstance, NameInstance, TypenameInstance)
-from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent, TypeSpec
+                                   StructuredObjectInstance, NameInstance, TypenameInstance, SOInstanceItem)
+from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent, TypeSpec, ComponentType
 from ldm.ast.expression_parser import ExpressionParser
 
 
 def to_typespec(token: Token) -> TypeSpec:
     return TypeSpec(token.value, 0, [])
+
 
 
 class StructureParser:
@@ -17,7 +21,7 @@ class StructureParser:
         self.tokenizer_items = tokenizer_items
 
         self.structure_count = 0
-        self.parsed_variables: dict[str, NameInstance | TypenameInstance | BlockInstance | ValueToken | OperatorInstance] = {}
+        self.parsed_variables: dict[str, SOInstanceItem] = {}
         self.context: ParsingContext = ParsingContext()
         self.tokens: TokenIterator = TokenIterator([])
 
@@ -29,7 +33,8 @@ class StructureParser:
         tn, _ = next(self.tokens)
         if tn.value not in self.items.config_spec.primitive_types:
             raise RuntimeError(f'{tn} not a type on line {tn.line}')
-        self.parsed_variables[var.name] = TypenameInstance(TypeSpec(tn.value, 0, []))
+        self.parsed_variables[var.name] = TypenameInstance(ComponentType.TYPENAME, TypeSpec(tn.value, 0, []))
+
         self.structure_count += 1
 
     def __handle_name(self, comp: StructureComponent, structure: Structure):
@@ -56,7 +61,7 @@ class StructureParser:
         elif var_type != 'any':
             raise RuntimeError(f'make-variable type "{var_type}" not recognized')
 
-        self.parsed_variables[var.name] = NameInstance(varname.value)
+        self.parsed_variables[var.name] = NameInstance(ComponentType.NAME, varname.value)
         self.structure_count += 1
 
     def __handle_expression(self, var_index: int, structure: Structure):
@@ -72,7 +77,7 @@ class StructureParser:
         self.expression_parser.set_tokens_and_context(self.tokens, self.context)
         expr = self.expression_parser.parse(until)
 
-        self.parsed_variables[var.name] = expr
+        self.parsed_variables[var.name] = SOInstanceItem(ComponentType.EXPRESSION, expr)
         self.structure_count += 1
 
     def __get_valid_blocks(self) -> list[BlockInstance]:
@@ -110,7 +115,7 @@ class StructureParser:
                 comp = b.block.structure.component_defs[i]
                 if comp.component_type == StructureComponentType.Variable:
                     comp_type = b.block.structure.component_specs[comp.value].base
-                    if comp_type == 'block':
+                    if comp_type == ComponentType.BLOCK:
                         sp = StructureParser(self.items, self.tokenizer_items)
 
                         next_comp = b.block.structure.component_defs[i + 1]
@@ -161,16 +166,16 @@ class StructureParser:
             raise RuntimeError(f"structure component {comp.value} not found")
         var = structure.component_specs[comp.value]
 
-        if var.base == 'typename':
+        if var.base == ComponentType.TYPENAME:
             self.__handle_typename(comp, structure)
 
-        elif var.base == 'name':
+        elif var.base == ComponentType.NAME:
             self.__handle_name(comp, structure)
 
-        elif var.base == 'expression':
+        elif var.base == ComponentType.EXPRESSION:
             self.__handle_expression(var_index, structure)
 
-        elif var.base == 'block':
+        elif var.base == ComponentType.BLOCK:
             local = False
             if 'scope' in var.other:
                 if var.other['scope'] == 'local':
@@ -180,8 +185,34 @@ class StructureParser:
 
             block = self.__handle_block(local)
             if block is not None:
-                self.parsed_variables[var.name] = block
+                self.parsed_variables[var.name] = SOInstanceItem(ComponentType.BLOCK, block)
                 self.structure_count += 1
+
+        elif var.base == ComponentType.REPEATED_ELEMENT:
+            # create structure component and use that
+            new_stucture = Structure(
+                var.other['components'],
+                comp.inner_structure
+            )
+            separator = comp.inner_fields['separator']
+
+            repeat_end = structure.component_defs[var_index + 1]
+            if repeat_end.component_type != StructureComponentType.String:
+                raise RuntimeError(f'Variables after repeated structures are not yet supported.')
+
+            sp = StructureParser(self.items, self.tokenizer_items)
+
+            elements = []
+            while self.tokens.peek().value != repeat_end.value:
+                result = sp.__parse_single_structure(self.tokens, new_stucture, self.context)
+                if self.tokens.peek().value != separator and self.tokens.peek().value != repeat_end.value:
+                    raise RuntimeError(f"Unable to parse component structure at {self.tokens.peek()}")
+                if self.tokens.peek().value == separator:
+                    next(self.tokens)
+                elements.append(result)
+
+            self.parsed_variables[var.name] = SOInstanceItem(ComponentType.REPEATED_ELEMENT, elements)
+            self.structure_count += 1
 
         else:
             raise RuntimeError(f'base {var.base} not recognized')
@@ -228,7 +259,7 @@ class StructureParser:
             elif first_component.component_type == StructureComponentType.Variable:
                 spec_component = so.structure.component_specs[first_component.value]
 
-                if spec_component.base == 'expression':
+                if spec_component.base == ComponentType.EXPRESSION:
                     exp = ExpressionParser(self.items)
                     test_iterator = TokenIterator(tokens.tokens[tokens.index:])
                     exp.set_tokens_and_context(test_iterator, context)
@@ -238,13 +269,13 @@ class StructureParser:
                         soi = StructuredObjectInstance(so, component_dict)
                         possible_structures.append(soi)
 
-                elif spec_component.base == 'typename':
+                elif spec_component.base == ComponentType.TYPENAME:
                     if token.value in self.items.config_spec.primitive_types:
                         component_dict = {spec_component.name: token}
                         soi = StructuredObjectInstance(so, component_dict)
                         possible_structures.append(soi)
 
-                elif spec_component.base == 'name':
+                elif spec_component.base == ComponentType.NAME:
                     if context.has_global(token.value):
                         component_dict = {spec_component.name: context.get_global(token.value)}
                         soi = StructuredObjectInstance(so, component_dict)
@@ -300,7 +331,7 @@ class StructureParser:
                 raise RuntimeError(f'Could not parse structure starting with {tokens.peek()} at line {tokens.peek().line}')
 
             max_components = 0
-            max_structure: None | tuple[StructuredObjectInstance, dict[str, NameInstance | TypenameInstance | BlockInstance | ValueToken | OperatorInstance]] = None
+            max_structure: None | tuple[StructuredObjectInstance, dict[str, Any]] = None
             max_index = 0
             for i in range(len(working_structures)):
                 if len(working_structures[i][1]) > max_components:

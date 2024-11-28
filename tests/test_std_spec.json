@@ -124,6 +124,21 @@
         "base": "block",
         "name": "body",
         "scope": "local"
+      },
+      {
+        "base": "repeated_element",
+        "name": "arguments",
+        "components": [
+            {
+                "base": "typename",
+                "name": "type"
+            },
+            {
+                "base": "name",
+                "name": "varname",
+                "type": "new-local"
+            }
+        ]
       }
     ],
     "value_type": "function<$typename>"

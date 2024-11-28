@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, BlockStructure, StructuredObject
+from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, BlockStructure, StructuredObject, ComponentType
 
 
 class TokenIterator:
@@ -108,19 +108,25 @@ class ValueToken:
 
 
 @dataclass
-class NameInstance:
-    value: str
+class SOInstanceItem:
+    item_type: ComponentType
+    value: Any
 
 
-@dataclass
-class TypenameInstance:
-    value: TypeSpec
+class NameInstance(SOInstanceItem):
+    def __init__(self, item_type: ComponentType, value: str):
+        super().__init__(item_type, value)
+
+
+class TypenameInstance(SOInstanceItem):
+    def __init__(self, item_type: ComponentType, value: TypeSpec):
+        super().__init__(item_type, value)
 
 
 @dataclass
 class StructuredObjectInstance:
     so: StructuredObject
-    components: dict[str, NameInstance | TypenameInstance | BlockInstance | ValueToken | OperatorInstance]
+    components: dict[str, SOInstanceItem]
 
     def __str__(self):
         return f"StructuredObjectInstance({self.so.name} {self.components})"

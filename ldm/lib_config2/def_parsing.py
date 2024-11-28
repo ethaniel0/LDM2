@@ -1,5 +1,3 @@
-from typing import Any
-
 from .parsing_types import *
 import re
 
@@ -115,13 +113,36 @@ def add_keyword_def(spec: Spec, arg: dict):
         raise ValueError(f"Keyword {name} has no symbols")
 
 
+def parse_component_structures(arg: dict[str, Any], spec_components: dict[str, StructureSpecComponent]) -> list[StructureComponent]:
+    structure = arg['structure']
+    components = parse_structure_into_components(structure)
+
+    for component in components:
+        if component.component_type != StructureComponentType.Variable:
+            continue
+        comp_type = spec_components[component.value].base
+        if comp_type != ComponentType.REPEATED_ELEMENT:
+            continue
+        if 'component_structures' not in arg:
+            raise ValueError(f"Repeated element {component.value} must have component structures")
+        if component.value not in arg['component_structures']:
+            raise ValueError(f"Repeated element {component.value} not found in component structures")
+        comp_defs = arg['component_structures'][component.value]
+        if not component.inner_fields:
+            component.inner_fields = {}
+        component.inner_structure = parse_component_structures(comp_defs, spec_components[component.value].other['components'])
+        component.inner_fields['separator'] = comp_defs['separator']
+
+    return components
+
+
 def add_def_to_structured(type: str, arg: dict[str, Any], spec: Spec):
     comp_name = arg['name']
     if comp_name not in spec.structured_objects:
         raise ValueError(f"{type} {comp_name} not found")
     if len(spec.structured_objects[comp_name].structure.component_defs) > 0:
         raise ValueError(f"{type} {comp_name} already has a definition")
-    components = parse_structure_into_components(arg['structure'])
+    components = parse_component_structures(arg, spec.structured_objects[comp_name].structure.component_specs)
 
     if type == 'keyword':
         trigger = get_trigger(components)

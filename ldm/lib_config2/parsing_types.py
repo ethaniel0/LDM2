@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol
+from typing import Protocol, Any
 
 
 # SPECS
@@ -71,11 +71,37 @@ class ValueKeyword:
     value_type: str
 
 
+
+@dataclass
+class StructureComponent:
+    component_type: StructureComponentType
+    value: str
+    inner_structure: list[StructureComponent] | None = None
+    inner_fields: dict[str, str] | None = None
+
+
+class ComponentType(Enum):
+    UNKNOWN = None
+    TYPENAME = 'typename'
+    NAME = 'name'
+    EXPRESSION = 'expression'
+    EXPRESSIONS = 'expressions',
+    BLOCK = 'block',
+    REPEATED_ELEMENT = 'repeated_element'
+    OPERATOR_VALUE = 'operator_value'
+
+
 @dataclass
 class StructureSpecComponent:
-    base: str
+    base: ComponentType
     name: str
-    other: dict[str, str]
+    other: dict[str, Any]
+
+
+@dataclass
+class Structure:
+    component_specs: dict[str, StructureSpecComponent]
+    component_defs: list[StructureComponent]
 
 
 @dataclass
@@ -215,18 +241,6 @@ class StructureComponentType(Enum):
     Variable = 2
     Command = 3
     EndCommand = 4
-
-
-@dataclass
-class StructureComponent:
-    component_type: StructureComponentType
-    value: str
-
-
-@dataclass
-class Structure:
-    component_specs: dict[str, StructureSpecComponent]
-    component_defs: list[StructureComponent]
 
 
 class InitializationType(Enum):
