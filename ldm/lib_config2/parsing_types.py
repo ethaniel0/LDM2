@@ -8,8 +8,11 @@ from typing import Protocol, Any
 @dataclass
 class TypeSpec:
     name: str
+    '''name of the type'''
     num_subtypes: int
+    '''number of subtypes'''
     subtypes: list[TypeSpec]
+    '''list of subtypes'''
 
     def __eq__(self, other):
         if not isinstance(other, TypeSpec):
@@ -31,27 +34,6 @@ class TypeSpec:
 
 
 @dataclass
-class GeneralType(Protocol):
-    spec: TypeSpec
-    superclass: TypeSpec | None
-    methods: list[Method]
-
-
-@dataclass
-class PrimitiveTypeInitialize:
-    type: str
-
-
-@dataclass
-class PrimitiveType:
-    spec: TypeSpec
-    superclass: TypeSpec | None
-    methods: list[Method]
-    initialize: PrimitiveTypeInitialize
-    value_keywords: list[ValueKeyword]
-
-
-@dataclass
 class MethodArgument:
     name: str
     type: str
@@ -69,7 +51,6 @@ class Method:
 class ValueKeyword:
     name: str
     value_type: str
-
 
 
 @dataclass
@@ -94,8 +75,20 @@ class ComponentType(Enum):
 @dataclass
 class StructureSpecComponent:
     base: ComponentType
+    '''Spec component type: typename, name, expression, etc.'''
     name: str
+    '''Transpiler-internal variable name associated with the component. Used to find the component during translation.'''
     other: dict[str, Any]
+    '''Other internal variables used for compiling structure components. These are structure specific.
+    
+    typename: no other components.
+    
+    name:
+        type: "existing-global", "new-global", "existing-local", "new-local", "any"
+    
+    repeated_element:
+        components: list with more StructureSpecComponents
+    '''
 
 
 @dataclass
@@ -103,14 +96,58 @@ class Structure:
     component_specs: dict[str, StructureSpecComponent]
     component_defs: list[StructureComponent]
 
+#### STRUCTURED OBJECTS ####
 
 @dataclass
 class StructuredObject:
     name: str
+    '''Structure name. Used only to keep track of each structure.'''
     structure: Structure
+    '''The corresponding structure'''
     value_type: TypeSpec | None
+    '''return type of the structure if it creates a variable'''
     value_name: str | None
+    '''Variable name created if the structure creates a variable'''
 
+#### TYPES ####
+
+@dataclass
+class FieldItem:
+    name: str
+    type: TypeSpec
+    optional: bool
+
+@dataclass
+class GeneralType(Protocol):
+    """Protocol used to define the structure for a PrimitiveType and a UserDefinedType"""
+    spec: TypeSpec
+    superclass: TypeSpec | None
+    fields: dict[str, TypeSpec]
+
+
+@dataclass
+class PrimitiveTypeInitialize:
+    type: str
+
+@dataclass
+class PrimitiveType:
+    spec: TypeSpec
+    '''TypeSpec of the primitive type'''
+    superclass: TypeSpec | None
+    '''Superclass of the primitive type'''
+    methods: list[Method]
+    initialize: PrimitiveTypeInitialize
+    value_keywords: list[ValueKeyword]
+
+
+@dataclass
+class UserDefinedType:
+    spec: TypeSpec
+    superclass: TypeSpec | None
+    structure: Structure
+
+
+#### OPERATORS ####
 
 @dataclass
 class OperatorOverload:
@@ -200,13 +237,15 @@ class Operator:
         # Get all variable names from structure components
         structure_vars = set()
         for comp in self.structure.component_specs.values():
-            if comp.base == "operator_value":
+            if comp.base == ComponentType.OPERATOR_VALUE:
                 structure_vars.add(comp.name)
         
         overload_vars = set(overload.variables.keys())
                 
         # Check if all variables in overload exist in structure
         return structure_vars == overload_vars
+
+#### OTHER: EXPRESSION SEPARATORS AND BLOCKS ####
 
 @dataclass
 class ExpressionSeparator:
@@ -218,7 +257,6 @@ class ExpressionSeparator:
 class BlockStructure:
     name: str
     structure: Structure
-
 
 @dataclass
 class Spec:

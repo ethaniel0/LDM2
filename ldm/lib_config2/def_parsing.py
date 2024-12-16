@@ -150,10 +150,14 @@ def add_def_to_structured(type: str, arg: dict[str, Any], spec: Spec):
             raise ValueError(f"{type} {comp_name} has no identifying symbols")
     else:
         has_non_expression_parameter = False
+        '''check to make sure the structure has something other than an expression'''
         for comp in components:
+            if comp.component_type == StructureComponentType.String:
+                has_non_expression_parameter = True
+                break
             component_specs = spec.structured_objects[comp_name].structure.component_specs
             comp_type = component_specs[comp.value].base
-            if comp_type != 'expression':
+            if comp_type != 'expression' and comp_type != 'expressions':
                 has_non_expression_parameter = True
                 break
         if not has_non_expression_parameter:
@@ -168,6 +172,8 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
 
         if comp_type in ['make_variable', 'make_object', 'keyword']:
             add_def_to_structured(comp_type, arg, spec)
+        elif comp_type in 'structure':
+            add_def_to_structured('structure', arg, spec)
         elif comp_type == 'operator':
             add_operator_def(spec, arg)
         elif comp_type == 'value_keyword':

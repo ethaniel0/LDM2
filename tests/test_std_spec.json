@@ -7,6 +7,9 @@
       "type": "bool"
     },
     "is": "",
+    "fields": [
+
+    ],
     "methods": [
       {
         "name": "not",
@@ -86,10 +89,9 @@
     "methods": []
   },
 
-
   {
-    "type": "make_variable",
-    "name": "standard",
+    "type": "structure",
+    "name": "make_variable_standard",
     "components": [
       {
         "base": "typename",
@@ -104,11 +106,13 @@
         "base": "expression",
         "name": "expr"
       }
-    ]
+    ],
+    "value_name": "varname",
+    "value_type": "$type"
   },
 
   {
-    "type": "make_object",
+    "type": "structure",
     "name": "function",
     "components": [
       {
@@ -141,11 +145,12 @@
         ]
       }
     ],
-    "value_type": "function<$typename>"
+    "value_type": "function<$typename>",
+    "value_name": "varname"
   },
 
   {
-    "type": "keyword",
+    "type": "structure",
     "name": "if",
     "components": [
       {
@@ -170,7 +175,6 @@
       }
     ]
   },
-
 
   {
     "type": "value_keyword",
@@ -355,7 +359,6 @@
     "return": "bool"
   },
 
-
   {
     "type": "operator",
     "name": ">",
@@ -389,7 +392,6 @@
     "left": "float", "right": "float",
     "return": "bool"
   },
-
 
   {
     "type": "operator",

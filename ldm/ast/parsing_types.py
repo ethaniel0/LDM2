@@ -50,16 +50,20 @@ class ParsingItems:
 @dataclass
 class ParsingContext:
     variables: dict[str, TypeSpec]
+    """Dictionary of variables in the current scope"""
     parent: ParsingContext | None
+    """The parent context, if this context is a sub-scope"""
 
     def __init__(self, parent=None):
         self.variables = {}
         self.parent = parent
 
     def has_local(self, key):
+        """Check if a variable is defined in the current scope"""
         return key in self.variables
 
     def has_global(self, key):
+        """Check if a variable is defined in the current scope or any parent scope"""
         if key in self.variables:
             return True
         if self.parent is not None:
@@ -67,11 +71,13 @@ class ParsingContext:
         return False
 
     def get_local(self, key):
+        """Get the type of a variable defined in the current scope"""
         if key in self.variables:
             return self.variables[key]
         return None
 
     def get_global(self, key):
+        """Get the type of a variable defined in the current scope or any parent scope"""
         if key in self.variables:
             return self.variables[key]
         if self.parent is not None:
@@ -82,10 +88,15 @@ class ParsingContext:
 @dataclass
 class OperatorInstance:
     operator: Operator
-    operands: list[ValueToken | OperatorInstance]  # List of parsed operands, each either a ValueToken or another OperatorInstance
+    '''The operator that this instance represents'''
+    operands: list[ValueToken | OperatorInstance]
+    '''List of parsed operands, each either a ValueToken or another OperatorInstance'''
     result_type: TypeSpec
+    '''The type of the result of this operator'''
     parse_parent: OperatorInstance | None
+    '''The parent operator instance, if this operator is a sub-expression'''
     token: Token | None
+    '''The first string token that represents this operator'''
 
     def __str__(self):
         return f"OperatorInstance({self.operator.name})"
@@ -109,24 +120,32 @@ class ValueToken:
 
 @dataclass
 class SOInstanceItem:
+    """Structured Object Instance Item"""
     item_type: ComponentType
+    """The type of the item (name, typename, expression, etc.)"""
     value: Any
+    """The value of the item"""
 
 
 class NameInstance(SOInstanceItem):
+    """Structured Object Instance Item for a name (string name of variable)"""
     def __init__(self, item_type: ComponentType, value: str):
         super().__init__(item_type, value)
 
 
 class TypenameInstance(SOInstanceItem):
+    """Structured Object Instance Item for a typename (TypeSpec)"""
     def __init__(self, item_type: ComponentType, value: TypeSpec):
         super().__init__(item_type, value)
 
 
 @dataclass
 class StructuredObjectInstance:
+    """An instance of a structured object"""
     so: StructuredObject
+    """The structured object that this instance represents"""
     components: dict[str, SOInstanceItem]
+    """Dictionary of components, as [component name: component instance object]"""
 
     def __str__(self):
         return f"StructuredObjectInstance({self.so.name} {self.components})"

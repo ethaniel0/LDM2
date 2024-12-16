@@ -148,7 +148,7 @@ def parse_operator(arg: dict[str, Any]) -> Operator:
     name = arg['name']
     components = {}
     for item in arg['components']:
-        s = StructureSpecComponent('operator_value', item['name'], {})
+        s = StructureSpecComponent(ComponentType.OPERATOR_VALUE, item['name'], {})
         components[item['name']] = s
     structure = Structure(components, [])
     return Operator(name, 0, structure, [], "", Associativity.NONE)
@@ -185,6 +185,16 @@ def parse_make_object(arg: dict[str, Any]) -> StructuredObject:
     components = [parse_structure_component(c) for c in arg['components']]
     components = {c.name: c for c in components}
     structure = Structure(components, [])
+
+    has_varname = False
+    for component in components:
+        if component == 'varname':
+            has_varname = True
+            break
+
+    if not has_varname:
+        raise RuntimeError(f"make_object \"{name}\" missing a \"varname\" component")
+
     return StructuredObject(
         name=name,
         structure=structure,
@@ -192,6 +202,26 @@ def parse_make_object(arg: dict[str, Any]) -> StructuredObject:
         value_name="$varname"
     )
 
+def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
+    name = arg['name']
+    components = [parse_structure_component(c) for c in arg['components']]
+    components = {c.name: c for c in components}
+    structure = Structure(components, [])
+
+    has_type = 'value_type' in arg
+
+    if ('value_name' in arg and 'value_type' not in arg) or ('value_name' not in arg and 'value_type' in arg):
+        raise RuntimeError(f"Structure {name} must have both or none of value_name and value_type")
+
+    val_type = string_to_typespec(arg['value_type']) if has_type else None
+    val_name = "$" + arg['value_name'] if has_type else None
+
+    return StructuredObject(
+        name=name,
+        structure=structure,
+        value_type=val_type,
+        value_name=val_name
+    )
 
 def parse_spec(arg: list[dict[str, Any]]) -> Spec:
     primitive_types: dict[str, PrimitiveType] = {}
@@ -212,6 +242,12 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                 if vk.value_type not in primitive_types:
                     raise ValueError(f"Value type {vk.value_type} not found")
                 primitive_types[vk.value_type].value_keywords.append(vk)
+
+            case "structure":
+                name = item['name']
+                if name in structured_objects:
+                    raise ValueError(f"Object {name} already exists")
+                structured_objects[name] = parse_general_structure(item)
 
             case 'make_variable':
                 name = item['name']
@@ -236,8 +272,6 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
             
             case 'operator_overload':
                 operator_overloads.append(parse_operator_overload(item))
-
-
 
             case 'block':
                 spec_components = {}

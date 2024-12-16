@@ -136,6 +136,71 @@ PLUS_OPERATOR = pt.Operator(
 PLUS_OPERATOR.operator_type = pt.OperatorType.BINARY
 PLUS_OPERATOR.calc_num_variables()
 
+
+# This is the exact same as the + operator, but it has left-to-right associativity
+PLUS_PLUS_OPERATOR = pt.Operator(
+    name="++",
+    precedence=6,
+    structure=pt.Structure(
+        component_specs={
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+        },
+        component_defs=[
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="left"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value="++"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="right"
+            )
+        ]
+    ),
+    overloads=[
+        pt.OperatorOverload(
+            name="++",
+            return_type=pt.TypeSpec("int", 0, []),
+            variables={
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
+            }
+        ),
+        pt.OperatorOverload(
+            name="++",
+            return_type=pt.TypeSpec("float", 0, []),
+            variables={
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
+            }
+        ),
+        pt.OperatorOverload(
+            name="++",
+            return_type=pt.TypeSpec("float", 0, []),
+            variables={
+                "left": pt.TypeSpec("float", 0, []),
+                "right": pt.TypeSpec("int", 0, [])
+            }
+        ),
+        pt.OperatorOverload(
+            name="++",
+            return_type=pt.TypeSpec("float", 0, []),
+            variables={
+                "left": pt.TypeSpec("int", 0, []),
+                "right": pt.TypeSpec("float", 0, [])
+            }
+        )
+    ],
+    trigger="+",
+    associativity=pt.Associativity.RIGHT_TO_LEFT
+)
+PLUS_PLUS_OPERATOR.operator_type = pt.OperatorType.BINARY
+PLUS_PLUS_OPERATOR.calc_num_variables()
+
 MINUS_OPERATOR = pt.Operator(
     name="-",
     precedence=6,
@@ -530,6 +595,7 @@ SPEC = pt.Spec(
     },
     operators={
         "+": PLUS_OPERATOR,
+        "++": PLUS_PLUS_OPERATOR,
         "-": MINUS_OPERATOR,
         "- neg": NEG_OPERATOR,
         "*": TIMES_OPERATOR,

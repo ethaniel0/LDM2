@@ -168,6 +168,58 @@ class MyTestCase(unittest.TestCase):
         assert inner_op.operands[0].value.value == '5'
         assert inner_op.operands[1].value.value == '4'
 
+    def test_make_variable_with_two_same_precedence_operators_ltr(self):
+        source_code = "int x = 5 + 4 + 6"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
+
+        expr: ast_pt.ValueToken = mv.components['expr'].value
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '+'
+        assert len(expr.operands) == 2
+        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
+        assert isinstance(expr.operands[1], ast_pt.ValueToken)
+        assert expr.operands[1].value.value == '6'
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[0]
+        assert inner_op.operator.name == '+'
+        assert len(inner_op.operands) == 2
+        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
+        assert inner_op.operands[0].value.value == '5'
+        assert inner_op.operands[1].value.value == '4'
+
+    def test_make_variable_with_two_same_precedence_operators_rtl(self):
+        source_code = "int x = 5 ++ 4 ++ 6"
+        tokens = TOKENIZER.tokenize(source_code)
+        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        mv: ast_pt.StructuredObjectInstance = ast[0]
+        assert mv.so.name == 'standard'
+
+        expr: ast_pt.ValueToken = mv.components['expr'].value
+        assert isinstance(expr, ast_pt.OperatorInstance)
+        assert expr.operator.name == '++'
+        assert len(expr.operands) == 2
+        assert isinstance(expr.operands[0], ast_pt.ValueToken)
+        assert isinstance(expr.operands[1], ast_pt.OperatorInstance)
+        assert expr.operands[0].value.value == '5'
+
+        inner_op: ast_pt.OperatorInstance = expr.operands[1]
+        assert inner_op.operator.name == '++'
+        assert len(inner_op.operands) == 2
+        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
+        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
+        assert inner_op.operands[0].value.value == '4'
+        assert inner_op.operands[1].value.value == '6'
+
     def test_make_variable_with_minus_and_negation(self):
         source_code = "int x = 5 - -8"
         tokens = TOKENIZER.tokenize(source_code)
@@ -468,7 +520,7 @@ class MyTestCase(unittest.TestCase):
         assert isinstance(ast[1], ast_pt.StructuredObjectInstance)
 
         mv: ast_pt.StructuredObjectInstance = ast[0]
-        assert mv.so.name == 'standard'
+        assert mv.so.name == 'make_variable_standard'
         assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'p'
         assert mv.components['expr'].value.value.value == '14'

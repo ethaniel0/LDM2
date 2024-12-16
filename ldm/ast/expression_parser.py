@@ -2,7 +2,7 @@ from __future__ import annotations
 from ldm.source_tokenizer.tokenize import Token, TokenType
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
                                    OperatorInstance, ValueToken)
-from ldm.lib_config2.parsing_types import StructureComponentType, TypeSpec, OperatorType
+from ldm.lib_config2.parsing_types import StructureComponentType, TypeSpec, OperatorType, Associativity
 from ldm.ast.type_checking import type_operator
 
 class ExpressionParser:
@@ -52,10 +52,13 @@ class ExpressionParser:
         working_ops = []
         ending_indices = []
 
+        # try parsing for each operator, if parsing works for the operator's whole structure, add it to working_ops
         for op in ops:
             op_has_left = op.operator.operator_type in [OperatorType.UNARY_LEFT, OperatorType.BINARY]
             op_components = op.operator.structure.component_defs
             index = 0
+            # operators are recognized by their non-variable components,
+            # so the previous variable components (which have already been parsed) are skipped
             for i in op_components:
                 index += 1
                 if i.component_type != StructureComponentType.Variable:
@@ -64,21 +67,32 @@ class ExpressionParser:
             components_parsed = 0
             components_needed = len(op_components) - index
 
+            # parse (recursively) the operator's structure
             for i in range(index, len(op_components)):
                 comp = op_components[i]
+                # if next structure component is a variable, parse new expression
                 if comp.component_type == StructureComponentType.Variable:
                     ep = ExpressionParser(self.items)
                     ep.set_tokens_and_context(self.tokens, self.parsing_context)
+
+                    # parse_until_full_tree only parses until the next value or operator or expression separator,
+                    # so it doesn't parse any more than it needs to before checking for the next structure component
                     tree = ep.parse_until_full_tree()
                     if tree is None:
                         break
 
+                    # if that's the end of the operator's structure,
+                    # add the tree to the operator's operands and continue
                     if i == len(op_components) - 1:
                         op.operands.append(tree)
                         components_parsed += 1
                         continue
 
                     next_comp = op_components[i + 1]
+
+                    # if the next component is a string,
+                    # keep parsing until that string is found
+                    # (or the expression ended / there's no more code left to parse)
                     if next_comp.component_type == StructureComponentType.String:
                         successful = True
 
@@ -94,6 +108,10 @@ class ExpressionParser:
                             components_parsed += 1
                         else:
                             break
+                    # if the next component is a variable (another expression), we need to be sure that the next part
+                    # parsed shouldn't be part of the first expression -> keep adding to the current expression
+                    # parse tree until the next value cannot be added to the current expression, and thus must be the
+                    # start of the next expression
                     else:
                         new_tree = ep.parse_until_full_tree()
                         while new_tree is not None:
@@ -102,18 +120,22 @@ class ExpressionParser:
                         op.operands.append(tree)
                         components_parsed += 1
 
+                # if the next structure component is a string, check if the next token is that string
                 else:
                     if not self.tokens.peek() or comp.value != self.tokens.peek().value:
                         break
                     components_parsed += 1
                     next(self.tokens)
 
+            # continue to the next operator if the current operator's structure couldn't be fully parsed
             if components_parsed != components_needed:
-                break
+                continue
 
+            # if operator has all right components (first left has already been accounted for)
             if op_has_left and len(op.operands) == op.operator.num_variables - 1:
                 working_ops.append(op)
                 ending_indices.append(self.tokens.current_index())
+            # if operator has no left components and all components have been parsed
             elif not op_has_left and len(op.operands) == op.operator.num_variables:
                 working_ops.append(op)
                 ending_indices.append(self.tokens.current_index())
@@ -148,7 +170,9 @@ class ExpressionParser:
             self.workingOperator = op_choice
         else:
             if has_left:
-                while op_choice.operator.precedence >= self.workingOperator.operator.precedence or \
+                while op_choice.operator.precedence > self.workingOperator.operator.precedence or \
+                        (op_choice.operator.precedence == self.workingOperator.operator.precedence and
+                         op_choice.operator.associativity == Associativity.LEFT_TO_RIGHT) or \
                         self.workingOperator.operator.operator_type in [OperatorType.UNARY_LEFT, OperatorType.INTERNAL]:
                     if len(self.workingOperator.operands) != self.workingOperator.operator.num_variables:
                         raise RuntimeError(f'Operator {self.workingOperator.operator.name} not fully parsed')
