@@ -37,13 +37,13 @@
   },
 
   {
-    "type": "make_variable",
-    "name": "standard",
+    "type": "structure",
+    "name": "make_variable_standard",
     "translate": "$varname: $type = $expr"
   },
 
   {
-    "type": "make_object",
+    "type": "structure",
     "name": "function",
     "translate": "def $varname ( $arguments ) $body",
     "component_structures": {
@@ -62,7 +62,7 @@
   },
 
   {
-    "type": "keyword",
+    "type": "structure",
     "name": "if",
     "translate": "if $condition $body"
   },

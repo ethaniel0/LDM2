@@ -71,7 +71,7 @@ class TranslationItems:
             if 'name' not in item:
                 raise RuntimeError('Translation item missing "name" field')
 
-            if item['type'] in ['make_variable', 'make_object', 'keyword']:
+            if item['type'] in ['structure', 'make_variable', 'make_object', 'keyword']:
                 parse_spec_item = parse_spec.structured_objects[item['name']]
                 components = parse_component_structure(
                     item,
@@ -103,6 +103,8 @@ class TranslationItems:
                                                              item['name'],
                                                              components,
                                                              item['indent'])
+            else:
+                raise RuntimeError(f"Unknown translation item type {item['type']}")
         
         if len(self.expression_separators) == 0:
             self.expression_separators['main'] = ExpressionSeparator('main', '')

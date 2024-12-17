@@ -36,7 +36,7 @@ BOOL_TYPE = pt.PrimitiveType(
 )
 
 MAKE_VARIABLE = pt.StructuredObject(
-    name="standard",
+    name="make_variable_standard",
     structure=pt.Structure(
         component_specs={
             "typename": pt.StructureSpecComponent(base=pt.ComponentType.TYPENAME,
@@ -69,7 +69,8 @@ MAKE_VARIABLE = pt.StructuredObject(
         ]
     ),
     value_type=pt.TypeSpec("type", 0, []),
-    value_name="$varname"
+    value_name="$varname",
+    dependent=False
 )
 
 PLUS_OPERATOR = pt.Operator(
@@ -526,13 +527,51 @@ PARENTHESES_OPERATOR.calc_num_variables()
 
 SEMICOLON = pt.ExpressionSeparator("semicolon", ";")
 
+BLOCK = pt.StructuredObject(
+    name="block_main",
+    structure=pt.Structure(
+        component_specs={
+            "body": pt.StructureSpecComponent(
+                base=pt.ComponentType.EXPRESSIONS,
+                name="body",
+                other={
+                    "allow": "all",
+                    "scope": "local"
+                }
+            )
+        },
+        component_defs=[
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value="{"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="body"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value="}"
+            )
+        ]
+    ),
+    value_type=None,
+    value_name=None,
+    dependent=True
+)
+
 
 IF_KEYWORD = pt.StructuredObject(
     name="if",
     structure=pt.Structure(
         component_specs={
             "condition": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION, name="condition", other={}),
-            "body": pt.StructureSpecComponent(base=pt.ComponentType.BLOCK, name="body", other={"scope": "global"})
+            "body": pt.StructureSpecComponent(
+                base=pt.ComponentType.STRUCTURE,
+                name="body",
+                other={
+                    "structure": "block_main"
+                })
         },
         component_defs=[
             pt.StructureComponent(
@@ -568,8 +607,9 @@ SPEC = pt.Spec(
         "bool": BOOL_TYPE
     },
     structured_objects={
-        "make_variable-standard": MAKE_VARIABLE,
-        'keyword-if': IF_KEYWORD
+        "make_variable_standard": MAKE_VARIABLE,
+        "if": IF_KEYWORD,
+        "block_main": BLOCK,
     },
     initializer_formats={
         "$int": pt.InitializationSpec(
@@ -603,31 +643,7 @@ SPEC = pt.Spec(
         ">": GT_OPERATOR,
         "()": PARENTHESES_OPERATOR
     },
-    expression_separators={";": SEMICOLON},
-    block_structures={
-        "main": pt.BlockStructure(
-            name="main",
-            structure=pt.Structure(
-                component_specs={
-                    "body": pt.StructureSpecComponent(base=pt.ComponentType.BLOCK, name="body", other={})
-                },
-                component_defs=[
-                    pt.StructureComponent(
-                        component_type=pt.StructureComponentType.String,
-                        value="{"
-                    ),
-                    pt.StructureComponent(
-                        component_type=pt.StructureComponentType.Variable,
-                        value="body"
-                    ),
-                    pt.StructureComponent(
-                        component_type=pt.StructureComponentType.String,
-                        value="}"
-                    ),
-                ]
-            )
-        )
-    }
+    expression_separators={";": SEMICOLON}
 )
 
 TOKENIZER_ITEMS = TokenizerItems(

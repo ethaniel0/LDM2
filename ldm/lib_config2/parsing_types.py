@@ -67,8 +67,8 @@ class ComponentType(Enum):
     NAME = 'name'
     EXPRESSION = 'expression'
     EXPRESSIONS = 'expressions',
-    BLOCK = 'block',
-    REPEATED_ELEMENT = 'repeated_element'
+    REPEATED_ELEMENT = 'repeated_element',
+    STRUCTURE = 'structure',
     OPERATOR_VALUE = 'operator_value'
 
 
@@ -108,6 +108,7 @@ class StructuredObject:
     '''return type of the structure if it creates a variable'''
     value_name: str | None
     '''Variable name created if the structure creates a variable'''
+    dependent: bool | None = False
 
 #### TYPES ####
 
@@ -252,12 +253,6 @@ class ExpressionSeparator:
     name: str
     value: str
 
-
-@dataclass
-class BlockStructure:
-    name: str
-    structure: Structure
-
 @dataclass
 class Spec:
     primitive_types: dict[str, PrimitiveType]
@@ -269,8 +264,6 @@ class Spec:
     operators: dict[str, Operator]
     '''{Operator name (NOT trigger): Operator}'''
     expression_separators: dict[str, ExpressionSeparator]
-    '''{ExpressionSeparator name: ExpressionSeparator}'''
-    block_structures: dict[str, BlockStructure]
     
 
 # DEFINITIONS

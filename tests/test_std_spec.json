@@ -113,6 +113,20 @@
 
   {
     "type": "structure",
+    "name": "main_block",
+    "components": [
+      {
+        "base": "expressions",
+        "name": "body",
+        "allow": "all",
+        "scope": "local"
+      }
+    ],
+    "dependent": true
+  },
+
+  {
+    "type": "structure",
     "name": "function",
     "components": [
       {
@@ -125,9 +139,14 @@
         "type": "new-local"
       },
       {
-        "base": "block",
+        "base": "structure",
         "name": "body",
-        "scope": "local"
+        "structure": "main_block",
+        "modifiers": {
+          "body": {
+            "scope": "local"
+          }
+        }
       },
       {
         "base": "repeated_element",
@@ -158,20 +177,14 @@
         "name": "condition"
       },
       {
-        "base": "block",
+        "base": "structure",
         "name": "body",
-        "scope": "local"
-      }
-    ]
-  },
-
-  {
-    "type": "block",
-    "name": "main",
-    "components": [
-      {
-        "base": "block",
-        "name": "body"
+        "structure": "main_block",
+        "modifiers": {
+          "body": {
+            "scope": "local"
+          }
+        }
       }
     ]
   },
