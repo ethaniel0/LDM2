@@ -181,8 +181,5 @@ def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
         elif comp_type == 'expression_separator':
             es = ExpressionSeparator(arg['name'], arg['value'])
             spec.expression_separators[arg['value']] = es
-        elif comp_type == 'block':
-            components = parse_structure_into_components(arg['structure'])
-            spec.block_structures[arg['name']].structure.component_defs = components
         else:
             raise ValueError(f"Unknown component type {comp_type}")

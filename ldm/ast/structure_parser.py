@@ -74,7 +74,7 @@ class StructureParser:
             if var.other['scope'] == 'local':
                 local = True
             elif var.other['scope'] != 'global':
-                raise RuntimeError(f"Unknown scope {var.other['scope']} for block")
+                raise RuntimeError(f"Unknown scope {var.other['scope']} for expressions")
 
         if local:
             block_context = ParsingContext(context)

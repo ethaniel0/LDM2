@@ -8,15 +8,14 @@ from ldm.ast.parsing_types import (ParsingItems,
                                    ValueToken,
                                    TypeSpec,
                                    StructuredObjectInstance,
-                                   TypenameInstance, SOInstanceItem, )
+                                   TypenameInstance, SOInstanceItem)
 from ldm.translation.translation_types import (StructuredObjectTranslation,
                                                TranslationStructureComponentType,
                                                OperatorTranslation,
                                                TranslationStructureComponent,
                                                PrimitiveTypeTranslation,
                                                ValueKeywordTranslation,
-                                               parse_translate_into_components,
-                                               )
+                                               parse_translate_into_components)
 
 def parse_component_structure(arg: dict, spec_components: dict[str, StructureSpecComponent]) -> list[TranslationStructureComponent]:
     structure = arg['translate']
@@ -231,28 +230,6 @@ def translate_structured_object(so: StructuredObjectInstance, translation: Trans
                 raise RuntimeError(f'Variable "{component.value}" not found in component "{so.so.name}"')
 
             code += translate_component(so.components[component.value], component, translation, indentation)
-
-            # code_component = so.components[component.value]
-            # comp_item_type = code_component.item_type
-            # comp_value: Any = code_component.value
-            # if comp_item_type == ComponentType.EXPRESSION:
-            #     if isinstance(code_component.value, ValueToken):
-            #         code += translate_value_token(comp_value, translation)
-            #     elif isinstance(comp_value, OperatorInstance):
-            #         code += translate_operator_instance(comp_value, translation)
-            #     else:
-            #         raise RuntimeError('expression has value other than value or operator')
-            # elif comp_item_type == ComponentType.BLOCK:
-            #     code += translate_block(comp_value, translation, indentation)
-            # elif comp_item_type == ComponentType.TYPENAME:
-            #     code += translate_typename(code_component, translation)
-            # elif comp_item_type == ComponentType.NAME:
-            #     code += code_component.value
-            # elif comp_item_type == ComponentType.REPEATED_ELEMENT:
-            #     code += translate_repeated_element(comp_value, component, translation, indentation)
-            #
-            # else:
-            #     raise RuntimeError(f'Unknown component type "{type(code_component)}"')
 
         elif component.component_type == TranslationStructureComponentType.Whitespace:
             code += component.value

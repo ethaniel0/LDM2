@@ -246,7 +246,7 @@ class Operator:
         # Check if all variables in overload exist in structure
         return structure_vars == overload_vars
 
-#### OTHER: EXPRESSION SEPARATORS AND BLOCKS ####
+#### OTHER: EXPRESSION SEPARATORS ####
 
 @dataclass
 class ExpressionSeparator:
