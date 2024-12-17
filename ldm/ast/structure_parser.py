@@ -140,7 +140,8 @@ class StructureParser:
             next_structure_name = var.other['structure']
             next_structure = self.items.config_spec.structured_objects[next_structure_name]
             node = self.__parse_single_structure(tokens, next_structure.structure, context)
-            return var.name, SOInstanceItem(ComponentType.STRUCTURE, node)
+            sobj = StructuredObjectInstance(next_structure, node)
+            return var.name, SOInstanceItem(ComponentType.STRUCTURE, sobj)
 
         else:
             raise RuntimeError(f'base {var.base} not recognized')

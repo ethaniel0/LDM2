@@ -1,5 +1,7 @@
 import sys
 
+from ldm.ast.parsing_types import StructuredObjectInstance
+
 sys.path.append('..')
 import unittest
 import json
@@ -475,9 +477,9 @@ class MyTestCase(unittest.TestCase):
         assert ast[0].so.name == 'if'
 
         if_body = ast[0].components['body']
-        assert isinstance(if_body.value, dict)
-        assert len(if_body.value) == 1
-        if_body_body = if_body.value['body'].value
+        assert isinstance(if_body.value, StructuredObjectInstance)
+        assert len(if_body.value.components) == 1
+        if_body_body = if_body.value.components['body'].value
         assert len(if_body_body) == 0
 
     def test_if_not_empty(self):
@@ -494,9 +496,9 @@ class MyTestCase(unittest.TestCase):
         assert ast[0].so.name == 'if'
 
         if_body = ast[0].components['body']
-        assert isinstance(if_body.value, dict)
-        assert len(if_body.value) == 1
-        if_body_body = if_body.value['body'].value
+        assert isinstance(if_body.value, StructuredObjectInstance)
+        assert len(if_body.value.components) == 1
+        if_body_body = if_body.value.components['body'].value
         assert len(if_body_body) == 1
         assert isinstance(if_body_body[0], ast_pt.StructuredObjectInstance)
 
@@ -510,6 +512,7 @@ class MyTestCase(unittest.TestCase):
         
         float func(int a, bool b){
             int x = 9;
+            x = x + 3;
         }
         """
         tokens = TOKENIZER.tokenize(source_code)
@@ -531,8 +534,8 @@ class MyTestCase(unittest.TestCase):
         assert len(if_inst.components) == 2
         assert isinstance(if_inst.components['condition'].value, ast_pt.OperatorInstance)
         assert if_inst.components['body'].item_type == ast_pt.ComponentType.STRUCTURE
-        assert isinstance(if_inst.components['body'].value, dict)
-        if_body: ast_pt.SOInstanceItem = if_inst.components['body'].value['body']
+        assert isinstance(if_inst.components['body'].value, StructuredObjectInstance)
+        if_body: ast_pt.SOInstanceItem = if_inst.components['body'].value.components['body']
         assert isinstance(if_body.value, list)
         assert len(if_body.value) == 1
         assert isinstance(if_body.value[0], ast_pt.StructuredObjectInstance)
@@ -542,14 +545,15 @@ class MyTestCase(unittest.TestCase):
         assert func.so.name == 'function'
         assert func.components['type'].value.name == 'float'
         assert func.components['varname'].value == 'func'
-        assert isinstance(func.components['body'].value, dict)
-        assert len(func.components['body'].value) == 1
-        assert isinstance(func.components['body'].value['body'], ast_pt.SOInstanceItem)
-        func_body: ast_pt.SOInstanceItem = func.components['body'].value['body']
+        assert isinstance(func.components['body'].value, StructuredObjectInstance)
+        assert len(func.components['body'].value.components) == 1
+        assert isinstance(func.components['body'].value.components['body'], ast_pt.SOInstanceItem)
+        func_body: ast_pt.SOInstanceItem = func.components['body'].value.components['body']
         assert isinstance(func_body.value, list)
-        assert len(func_body.value) == 1
+        assert len(func_body.value) == 2
         assert isinstance(func_body.value[0], ast_pt.StructuredObjectInstance)
         assert func_body.value[0].so.name == 'make_variable_standard'
+        assert isinstance(func_body.value[1], ast_pt.OperatorInstance)
 
         assert len(func.components['arguments'].value) == 2
         arguments = func.components['arguments'].value

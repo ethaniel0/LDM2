@@ -12,7 +12,9 @@ class TranslationStructureComponentType(Enum):
 @dataclass
 class TranslationStructureComponent:
     component_type: TranslationStructureComponentType
+    """Type of component: string, variable, or whitespace"""
     value: str
+    """The value of the component. Variables usually start with "$"."""
     inner_structure: list[TranslationStructureComponent] | None = None
     inner_fields: dict[str, str] | None = None
 

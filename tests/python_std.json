@@ -46,7 +46,7 @@
     "type": "structure",
     "name": "function",
     "translate": "def $varname ( $arguments ) $body",
-    "component_structures": {
+    "component_features": {
       "arguments": {
         "translate": "$varname: $type",
         "separator": ", "
@@ -55,10 +55,14 @@
   },
 
   {
-    "type": "block",
-    "name": "main",
+    "type": "structure",
+    "name": "main_block",
     "translate": ":\n$body",
-    "indent": 4
+    "component_features": {
+      "body": {
+        "indent": 4
+      }
+    }
   },
 
   {

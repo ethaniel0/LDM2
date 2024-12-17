@@ -8,7 +8,7 @@ from ldm.ast.parsing_types import (ParsingItems,
                                    ValueToken,
                                    TypeSpec,
                                    StructuredObjectInstance,
-                                   BlockInstance, TypenameInstance, SOInstanceItem, )
+                                   TypenameInstance, SOInstanceItem, )
 from ldm.translation.translation_types import (StructuredObjectTranslation,
                                                TranslationStructureComponentType,
                                                OperatorTranslation,
@@ -16,34 +16,38 @@ from ldm.translation.translation_types import (StructuredObjectTranslation,
                                                PrimitiveTypeTranslation,
                                                ValueKeywordTranslation,
                                                parse_translate_into_components,
-                                               BlockTranslation)
-
+                                               )
 
 def parse_component_structure(arg: dict, spec_components: dict[str, StructureSpecComponent]) -> list[TranslationStructureComponent]:
     structure = arg['translate']
     components = parse_translate_into_components(structure)
 
-    if 'component_structures' not in arg:
-        return components
-
     for component in components:
         if component.component_type != TranslationStructureComponentType.Variable:
             continue
         comp_type = spec_components[component.value].base
-        if comp_type != ComponentType.REPEATED_ELEMENT:
-            continue
+        if comp_type == ComponentType.REPEATED_ELEMENT:
+            if 'component_features' not in arg:
+                raise ValueError(f"Repeated element {component.value} must have component structures")
+            if component.value not in arg['component_features']:
+                raise ValueError(f"Repeated element {component.value} not found in component structures")
+            comp_defs = arg['component_features'][component.value]
+            if not component.inner_fields:
+                component.inner_fields = {}
+            component.inner_structure = parse_component_structure(
+                comp_defs,
+                spec_components[component.value].other['components']
+            )
+            component.inner_fields['separator'] = comp_defs['separator']
 
-        if 'component_structures' not in arg:
-            raise ValueError(f"Repeated element {component.value} must have component structures")
-        if component.value not in arg['component_structures']:
-            raise ValueError(f"Repeated element {component.value} not found in component structures")
-        comp_defs = arg['component_structures'][component.value]
-        if not component.inner_fields:
-            component.inner_fields = {}
-        component.inner_structure = parse_component_structure(comp_defs,
-                                                              spec_components[component.value].other['components']
-                                                              )
-        component.inner_fields['separator'] = comp_defs['separator']
+        elif comp_type == ComponentType.EXPRESSIONS:
+            if 'component_features' not in arg or component.value not in arg['component_features']:
+                continue
+            arg_comp = arg['component_features'][component.value]
+            if not component.inner_fields:
+                component.inner_fields = {}
+            if 'indent' in arg_comp:
+                component.inner_fields['indent'] = arg_comp['indent']
 
     return components
 
@@ -55,7 +59,6 @@ class TranslationItems:
     operators: dict[str, OperatorTranslation]
     value_keywords: dict[str, ValueKeywordTranslation]
     expression_separators: dict[str, ExpressionSeparator]
-    blocks: dict[str, BlockTranslation]
 
     def __init__(self, translate_specs: dict, parse_spec: Spec):
         self.structured_objects: dict[str, StructuredObjectTranslation] = {}
@@ -63,7 +66,6 @@ class TranslationItems:
         self.operators: dict[str, OperatorTranslation] = {}
         self.value_keywords: dict[str, ValueKeywordTranslation] = {}
         self.expression_separators: dict[str, ExpressionSeparator] = {}
-        self.blocks: dict[str, BlockTranslation] = {}
 
         for item in translate_specs:
             if 'type' not in item:
@@ -71,11 +73,11 @@ class TranslationItems:
             if 'name' not in item:
                 raise RuntimeError('Translation item missing "name" field')
 
-            if item['type'] in ['structure', 'make_variable', 'make_object', 'keyword']:
+            if item['type']  == 'structure':
                 parse_spec_item = parse_spec.structured_objects[item['name']]
                 components = parse_component_structure(
                     item,
-                    parse_spec_item.structure.component_specs
+                    parse_spec_item.structure.component_specs,
                 )
 
                 self.structured_objects[item['name']] = StructuredObjectTranslation(item['type'],
@@ -97,14 +99,8 @@ class TranslationItems:
                 self.operators[item['name']] = OperatorTranslation(item['type'],
                                                                    item['name'],
                                                                    components)
-            elif item['type'] == 'block':
-                components = parse_translate_into_components(item['translate'])
-                self.blocks[item['name']] = BlockTranslation(item['type'],
-                                                             item['name'],
-                                                             components,
-                                                             item['indent'])
-            else:
-                raise RuntimeError(f"Unknown translation item type {item['type']}")
+            # else:
+            #     raise RuntimeError(f"Unknown translation item type {item['type']}")
         
         if len(self.expression_separators) == 0:
             self.expression_separators['main'] = ExpressionSeparator('main', '')
@@ -169,39 +165,25 @@ def translate_operator_instance(operator_instance: OperatorInstance, translation
 
     return code
 
-
-def translate_block(block: BlockInstance, translation: TranslationItems, indentation) -> str:
-    if block.block.name not in translation.blocks:
-        raise RuntimeError(f'Block "{block.block.name}" not found in translation items')
-    block_translation = translation.blocks[block.block.name]
-
-    code = ""
-
-    for component in block_translation.translate:
-        if component.component_type == TranslationStructureComponentType.String:
-            code += component.value
-        elif component.component_type == TranslationStructureComponentType.Variable:
-            if component.value not in block.components:
-                raise RuntimeError(f'Variable "{component.value}" not found in Block "{block.block.name}"')
-
-            code_component = block.components[component.value]
-            if not isinstance(code_component, list):
-                raise RuntimeError(f'Block component "{component.value}" is not a list')
-            code += translate(code_component, translation, indent=indentation + block_translation.inner_indent)
-
-        elif component.component_type == TranslationStructureComponentType.Whitespace:
-            code += component.value
-        else:
-            raise RuntimeError(f'Unknown structure component type "{component.component_type}"')
-
-    return code
-
-
 def translate_typename(typename: TypenameInstance, translation: TranslationItems) -> str:
     if typename.value.name not in translation.primitive_types:
         raise RuntimeError(f'Primitive type "{typename.value.name}" not found in translation items')
     return translation.primitive_types[typename.value.name].translate
 
+
+def translate_expressions(exprs: list, translation_component: TranslationStructureComponent, translation: TranslationItems, indentation: int) -> str:
+    code = ""
+
+    if 'indent' in translation_component.inner_fields:
+        inner_indent = translation_component.inner_fields['indent']
+    else:
+        inner_indent = 0
+
+    if not isinstance(exprs, list):
+        raise RuntimeError(f'Expressions component "{exprs}" is not a list')
+    code += translate(exprs, translation, indent=indentation + inner_indent)
+
+    return code
 
 def translate_component(component: SOInstanceItem, translation_component: TranslationStructureComponent, translation: TranslationItems, indentation: int) -> str:
     comp_item_type = component.item_type
@@ -215,14 +197,18 @@ def translate_component(component: SOInstanceItem, translation_component: Transl
             code += translate_operator_instance(comp_value, translation)
         else:
             raise RuntimeError('expression has value other than value or operator')
-    elif comp_item_type == ComponentType.BLOCK:
-        code += translate_block(comp_value, translation, indentation)
     elif comp_item_type == ComponentType.TYPENAME:
         code += translate_typename(component, translation)
     elif comp_item_type == ComponentType.NAME:
         code += component.value
     elif comp_item_type == ComponentType.REPEATED_ELEMENT:
         code += translate_repeated_element(comp_value, translation_component, translation, indentation)
+    elif comp_item_type == ComponentType.EXPRESSIONS:
+        code += translate_expressions(component.value, translation_component, translation, indentation)
+    elif comp_item_type == ComponentType.STRUCTURE:
+        soi: StructuredObjectInstance = component.value
+        code += translate_structured_object(soi, translation, indentation)
+
 
     else:
         raise RuntimeError(f'Unknown component type "{type(component)}"')
