@@ -182,7 +182,7 @@
         "structure": "main_block",
         "modifiers": {
           "body": {
-            "scope": "local"
+            "scope": "global"
           }
         }
       }

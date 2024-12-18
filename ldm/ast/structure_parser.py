@@ -93,58 +93,80 @@ class StructureParser:
             raise RuntimeError(f'Could not parse expressions')
         return SOInstanceItem(ComponentType.EXPRESSIONS, result)
 
+    def __handle_repeated_element(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure):
+        comp = structure.component_defs[var_index]
+        var = structure.component_specs[comp.value]
+        new_stucture = Structure(
+            var.other['components'],
+            comp.inner_structure
+        )
+        separator = comp.inner_fields['separator']
+
+        repeat_end = structure.component_defs[var_index + 1]
+        if repeat_end.component_type != StructureComponentType.String:
+            raise RuntimeError(f'Variables after repeated structures are not yet supported.')
+
+        sp = StructureParser(self.items, self.tokenizer_items)
+
+        elements = []
+        while tokens.peek().value != repeat_end.value:
+            result = sp.__parse_single_structure(tokens, new_stucture, context)
+            if tokens.peek().value != separator and tokens.peek().value != repeat_end.value:
+                raise RuntimeError(f"Unable to parse component structure at {tokens.peek()}")
+            if tokens.peek().value == separator:
+                next(tokens)
+            elements.append(result)
+
+        return SOInstanceItem(ComponentType.REPEATED_ELEMENT, elements)
+
     def __handle_variable(self, var_index: int, structure: Structure, tokens: TokenIterator, context: ParsingContext):
         comp = structure.component_defs[var_index]
         if comp.value not in structure.component_specs:
             raise RuntimeError(f"structure component {comp.value} not found")
         var = structure.component_specs[comp.value]
 
+        result = None
+
         if var.base == ComponentType.TYPENAME:
-            return var.name, self.__handle_typename(tokens)
-
+            result = self.__handle_typename(tokens)
         elif var.base == ComponentType.NAME:
-            return var.name, self.__handle_name(comp, structure, tokens, context)
-
+            result = self.__handle_name(comp, structure, tokens, context)
         elif var.base == ComponentType.EXPRESSION:
-            return var.name, self.__handle_expression(tokens, context, var_index, structure)
-
+            result = self.__handle_expression(tokens, context, var_index, structure)
         elif var.base == ComponentType.EXPRESSIONS:
-            return var.name, self.__handle_expressions(tokens, context, var_index, structure)
-
+            result = self.__handle_expressions(tokens, context, var_index, structure)
         elif var.base == ComponentType.REPEATED_ELEMENT:
-            # create structure component and use that
-            new_stucture = Structure(
-                var.other['components'],
-                comp.inner_structure
-            )
-            separator = comp.inner_fields['separator']
-
-            repeat_end = structure.component_defs[var_index + 1]
-            if repeat_end.component_type != StructureComponentType.String:
-                raise RuntimeError(f'Variables after repeated structures are not yet supported.')
-
-            sp = StructureParser(self.items, self.tokenizer_items)
-
-            elements = []
-            while tokens.peek().value != repeat_end.value:
-                result = sp.__parse_single_structure(tokens, new_stucture, context)
-                if tokens.peek().value != separator and tokens.peek().value != repeat_end.value:
-                    raise RuntimeError(f"Unable to parse component structure at {tokens.peek()}")
-                if tokens.peek().value == separator:
-                    next(tokens)
-                elements.append(result)
-
-            return var.name, SOInstanceItem(ComponentType.REPEATED_ELEMENT, elements)
+            result = self.__handle_repeated_element(tokens, context, var_index, structure)
 
         elif var.base == ComponentType.STRUCTURE:
             next_structure_name = var.other['structure']
             next_structure = self.items.config_spec.structured_objects[next_structure_name]
+            originals = {}
+            next_comp_specs = next_structure.structure.component_specs
+            if 'modifiers' in var.other and var.name in var.other['modifiers']:
+                mods = var.other['modifiers'][var.name]
+
+                for item, val in mods.items():
+                    if item in next_comp_specs[var.name].other:
+                        originals[item] = next_comp_specs[var.name].other[item]
+                    else:
+                        originals[item] = None
+                    next_comp_specs[var.name].other[item] = val
+
             node = self.__parse_single_structure(tokens, next_structure.structure, context)
             sobj = StructuredObjectInstance(next_structure, node)
-            return var.name, SOInstanceItem(ComponentType.STRUCTURE, sobj)
+            result = SOInstanceItem(ComponentType.STRUCTURE, sobj)
+            # reset originals
+            for o, val in originals.items():
+                if val is None:
+                    del next_comp_specs[var.name].other[o]
+                else:
+                    next_comp_specs[var.name].other[o] = val
 
         else:
             raise RuntimeError(f'base {var.base} not recognized')
+
+        return var.name, result
 
     def __parse_single_structure(self, tokens: TokenIterator, structure: Structure, context: ParsingContext):
         structure_count = 0

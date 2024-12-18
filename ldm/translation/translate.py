@@ -208,7 +208,6 @@ def translate_component(component: SOInstanceItem, translation_component: Transl
         soi: StructuredObjectInstance = component.value
         code += translate_structured_object(soi, translation, indentation)
 
-
     else:
         raise RuntimeError(f'Unknown component type "{type(component)}"')
 
