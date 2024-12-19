@@ -47,7 +47,7 @@ class ExpressionParser:
         ops = self.__create_operator_list(op_token)
 
         if len(ops) == 0:
-            raise RuntimeError(f'Operator {op_token} not found at line {op_token.line}')
+            raise RuntimeError(f'Operator {op_token} not defined at line {op_token.line}')
 
         working_ops = []
         ending_indices = []
@@ -222,7 +222,7 @@ class ExpressionParser:
         if token.type == TokenType.Identifier:
             v = self.parsing_context.get_global(token.value)
             if v is None:
-                raise RuntimeError(f'{token} not found at line {token.line}')
+                raise RuntimeError(f'{token} not defined at line {token.line}')
             return ValueToken(token, v, None)
 
         raise RuntimeError(f'Could not parse value "{token.value}" at line {token.line}')

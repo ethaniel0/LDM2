@@ -11,4 +11,4 @@ def parse(tokens: list[Token], parsing_items: ParsingItems, tokenizer_items: Tok
 
     # create structure parser
     sp = StructureParser(parsing_items, tokenizer_items)
-    return sp.parse(iterator, context)
+    return sp.parse(iterator, context), context

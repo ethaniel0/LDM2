@@ -1,10 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
+from enum import Enum
 
 from ldm.source_tokenizer.tokenizer_types import Token
 from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, StructuredObject, ComponentType
-
 
 class TokenIterator:
     def __init__(self, tokens: list[Token]):
@@ -41,7 +41,6 @@ class TokenIterator:
 
         return self.tokens[index]
 
-
 @dataclass
 class ParsingItems:
     config_spec: Spec
@@ -71,7 +70,7 @@ class ParsingContext:
         return False
 
     def get_local(self, key):
-        """Get the type of a variable defined in the current scope"""
+        """Get the type of some variable defined in the current scope"""
         if key in self.variables:
             return self.variables[key]
         return None
@@ -125,6 +124,7 @@ class SOInstanceItem:
     """The type of the item (name, typename, expression, etc.)"""
     value: Any
     """The value of the item"""
+    created_context: ParsingContext | None = None
 
 
 class NameInstance(SOInstanceItem):

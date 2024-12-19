@@ -68,8 +68,13 @@ MAKE_VARIABLE = pt.StructuredObject(
             )
         ]
     ),
-    value_type=pt.TypeSpec("type", 0, []),
-    value_name="$varname",
+    create_variable=pt.CreateVariable(
+        name="$varname",
+        type=pt.TypeSpec("typename", 0, []),
+        scope=pt.ScopeOptions.LOCAL,
+        check_type=None
+    ),
+    create_type=None,
     dependent=False
 )
 
@@ -555,8 +560,6 @@ BLOCK = pt.StructuredObject(
             )
         ]
     ),
-    value_type=None,
-    value_name=None,
     dependent=True
 )
 
@@ -596,8 +599,6 @@ IF_KEYWORD = pt.StructuredObject(
             ),
         ]
     ),
-    value_type=None,
-    value_name=None
 )
 
 SPEC = pt.Spec(

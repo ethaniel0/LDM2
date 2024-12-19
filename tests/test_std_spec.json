@@ -107,8 +107,12 @@
         "name": "expr"
       }
     ],
-    "value_name": "varname",
-    "value_type": "$type"
+    "create_variable": {
+      "name": "$varname",
+      "type": "$type",
+      "check_type": "$expr",
+      "scope": "local"
+    }
   },
 
   {
@@ -139,16 +143,6 @@
         "type": "new-local"
       },
       {
-        "base": "structure",
-        "name": "body",
-        "structure": "main_block",
-        "modifiers": {
-          "body": {
-            "scope": "local"
-          }
-        }
-      },
-      {
         "base": "repeated_element",
         "name": "arguments",
         "components": [
@@ -162,10 +156,88 @@
                 "type": "new-local"
             }
         ]
+      },
+      {
+        "base": "structure",
+        "name": "body",
+        "structure": "main_block",
+        "modifiers": {
+          "body": {
+            "scope": "local",
+            "insert_scope": [
+              {
+                "typename": "$arguments.type",
+                "name": "$arguments.name"
+              }
+            ]
+          }
+        }
       }
     ],
-    "value_type": "function<$typename>",
-    "value_name": "varname"
+    "create_variable": {
+      "type": "function<$typename>",
+      "name": "$varname",
+      "scope": "local",
+      "attributes": {
+        "arguments": "$arguments"
+      }
+    }
+  },
+
+  {
+    "type": "structure",
+    "name": "struct_initialize_variable",
+    "components": [
+      {
+        "base": "typename",
+        "name": "type"
+      },
+      {
+        "base": "name",
+        "name": "varname",
+        "type": "new-local"
+      }
+    ],
+    "create_variable": {
+      "name": "$varname",
+      "type": "$type",
+      "scope": "local"
+    },
+    "dependent": true
+  },
+
+  {
+    "type": "structure",
+    "name": "struct",
+    "components": [
+      {
+        "base": "name",
+        "name": "struct_name",
+        "type": "new-global"
+      },
+      {
+        "base": "structure",
+        "name": "body",
+        "structure": "main_block",
+        "modifiers": {
+          "body": {
+            "scope": "local",
+            "filter": [
+              {
+                "type": "structure",
+                "structure": "struct_initialize_variable"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "create_type": {
+      "type": "$struct_name",
+      "scope": "global",
+      "fields_containers": ["body.body"]
+    }
+
   },
 
   {
@@ -199,6 +271,7 @@
     "name": "false",
     "value_type": "bool"
   },
+
 
   {
     "type": "operator",

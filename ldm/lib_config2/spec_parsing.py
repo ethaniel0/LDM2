@@ -160,13 +160,52 @@ def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
     components = {c.name: c for c in components}
     structure = Structure(components, [])
 
-    has_type = 'value_type' in arg
+    create_variable: CreateVariable | None = None
+    create_type: CreateType | None = None
 
-    if ('value_name' in arg and 'value_type' not in arg) or ('value_name' not in arg and 'value_type' in arg):
-        raise RuntimeError(f"Structure {name} must have both or none of value_name and value_type")
+    scope_options = {
+        'local': ScopeOptions.LOCAL,
+        'global': ScopeOptions.GLOBAL,
+    }
 
-    val_type = string_to_typespec(arg['value_type']) if has_type else None
-    val_name = "$" + arg['value_name'] if has_type else None
+    if 'create_variable' in arg:
+        cv = arg['create_variable']
+
+        if 'name' not in cv:
+            raise ValueError(f"create_variable {cv} must have name specified")
+        if 'type' not in cv:
+            raise ValueError(f"create_variable {cv} must have type specified")
+        if 'scope' not in cv:
+            raise ValueError(f"create_variable {cv} must have scope specified")
+        check_type = None
+        if 'check_type' in cv:
+            check_type = cv['check_type']
+
+        val_name = cv['name']
+        val_type = string_to_typespec(cv['type'])
+        if cv['scope'] not in scope_options:
+            raise ValueError('Scope must be one of local, global')
+        val_scope = scope_options[cv['scope']]
+        create_variable = CreateVariable(val_name, val_type, val_scope, check_type)
+
+    if 'create_type' in arg:
+        cv = arg['create_type']
+        if 'type' not in cv:
+            raise ValueError(f"create_type {cv} must have type specified")
+        if 'scope' not in cv:
+            raise ValueError(f"create_type {cv} must have scope specified")
+        if 'fields_containers' not in cv:
+            raise ValueError(f"create_type {cv} must have fields_containers specified")
+
+        val_type = string_to_typespec(cv['type'])
+
+        if cv['scope'] not in scope_options:
+            raise ValueError('Scope must be one of local, global')
+        val_scope = scope_options[cv['scope']]
+
+        val_fields = cv['fields_containers']
+
+        create_type = CreateType(val_type, val_scope, val_fields)
 
     is_dependent = False
 
@@ -176,8 +215,8 @@ def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
     return StructuredObject(
         name=name,
         structure=structure,
-        value_type=val_type,
-        value_name=val_name,
+        create_variable=create_variable,
+        create_type=create_type,
         dependent=is_dependent,
     )
 
@@ -245,3 +284,4 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
         operators=operators,
         expression_separators=expression_separators,
     )
+

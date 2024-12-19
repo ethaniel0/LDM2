@@ -1,0 +1,35 @@
+[
+  {
+    "type": "operator",
+    "name": ". access",
+    "components": [
+          {"name": "left"},
+          {"name": "right"}
+    ]
+  },
+  {
+    "type": "operator_overload",
+    "name": ". access",
+    "left": "$typename<T>", "right": "$identifier",
+    "return": "$typename_field<T, $right>"
+  },
+
+
+
+  {
+    "type": "operator",
+    "name": "function_call",
+    "precedence": 2,
+    "components": [
+      {"name":  "function"},
+      {"name":  "arguments"}
+    ]
+  },
+  {
+    "type": "operator_overload",
+    "name": "function_call",
+    "function": "function<$typename<T>>",
+    "$arguments": "$typename_attributes.arguments",
+    "return": "$typename<T>"
+  }
+]

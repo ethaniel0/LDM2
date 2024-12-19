@@ -38,6 +38,19 @@
   },
 
   {
+    "type": "structure",
+    "name": "struct_initialize_variable",
+    "structure": "$type $varname ;"
+  },
+
+  {
+    "type": "structure",
+    "name": "struct",
+    "structure": "struct $struct_name $body"
+  },
+
+
+  {
     "type": "value_keyword",
     "name": "true",
     "typed_name": "true"
@@ -47,7 +60,6 @@
     "name": "false",
     "typed_name": "false"
   },
-
 
   {
     "type": "operator",

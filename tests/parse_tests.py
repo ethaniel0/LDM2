@@ -502,7 +502,7 @@ class MyTestCase(unittest.TestCase):
         assert len(if_body_body) == 1
         assert isinstance(if_body_body[0], ast_pt.StructuredObjectInstance)
 
-    def test_parsing(self):
+    def test_if_and_func_with_load_setup(self):
         spec = load_setup()
         source_code = """
         int p = 14;
@@ -517,7 +517,7 @@ class MyTestCase(unittest.TestCase):
         """
         tokens = TOKENIZER.tokenize(source_code)
 
-        ast = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
+        ast, context = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
 
         assert len(ast) == 3
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -565,62 +565,23 @@ class MyTestCase(unittest.TestCase):
     def test_parsing(self):
         spec = load_setup()
         source_code = """
-        int p = 14;
-        if (p < 12){
-            int p = 5 + 4;
+        struct Point {
+            int x;
+            int y;
         }
-
-        float func(int a, bool b){
-            int x = 9;
-            x = x + 3;
+        
+        Point translate(Point p, int x, int y){
+            
         }
+      
         """
         tokens = TOKENIZER.tokenize(source_code)
 
-        ast = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
+        ast, context = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
 
-        assert len(ast) == 3
+        assert len(ast) == 2
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
         assert isinstance(ast[1], ast_pt.StructuredObjectInstance)
-
-        mv: ast_pt.StructuredObjectInstance = ast[0]
-        assert mv.so.name == 'make_variable_standard'
-        assert mv.components['type'].value.name == 'int'
-        assert mv.components['varname'].value == 'p'
-        assert mv.components['expr'].value.value.value == '14'
-
-        if_inst: ast_pt.StructuredObjectInstance = ast[1]
-        assert if_inst.so.name == 'if'
-        assert len(if_inst.components) == 2
-        assert isinstance(if_inst.components['condition'].value, ast_pt.OperatorInstance)
-        assert if_inst.components['body'].item_type == ast_pt.ComponentType.STRUCTURE
-        assert isinstance(if_inst.components['body'].value, StructuredObjectInstance)
-        if_body: ast_pt.SOInstanceItem = if_inst.components['body'].value.components['body']
-        assert isinstance(if_body.value, list)
-        assert len(if_body.value) == 1
-        assert isinstance(if_body.value[0], ast_pt.StructuredObjectInstance)
-        assert if_body.value[0].so.name == 'make_variable_standard'
-
-        func: ast_pt.StructuredObjectInstance = ast[2]
-        assert func.so.name == 'function'
-        assert func.components['type'].value.name == 'float'
-        assert func.components['varname'].value == 'func'
-        assert isinstance(func.components['body'].value, StructuredObjectInstance)
-        assert len(func.components['body'].value.components) == 1
-        assert isinstance(func.components['body'].value.components['body'], ast_pt.SOInstanceItem)
-        func_body: ast_pt.SOInstanceItem = func.components['body'].value.components['body']
-        assert isinstance(func_body.value, list)
-        assert len(func_body.value) == 2
-        assert isinstance(func_body.value[0], ast_pt.StructuredObjectInstance)
-        assert func_body.value[0].so.name == 'make_variable_standard'
-        assert isinstance(func_body.value[1], ast_pt.OperatorInstance)
-
-        assert len(func.components['arguments'].value) == 2
-        arguments = func.components['arguments'].value
-        assert arguments[0]['type'].value.name == 'int'
-        assert arguments[0]['varname'].value == 'a'
-        assert arguments[1]['type'].value.name == 'bool'
-        assert arguments[1]['varname'].value == 'b'
 
 
 if __name__ == '__main__':

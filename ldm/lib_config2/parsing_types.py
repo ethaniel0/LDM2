@@ -13,6 +13,12 @@ class TypeSpec:
     '''number of subtypes'''
     subtypes: list[TypeSpec]
     '''list of subtypes'''
+    attributes: dict[str, TypeSpec]
+    def __init__(self, name: str, num_subtypes: int, subtypes: list[TypeSpec], attributes=None):
+        self.name = name
+        self.num_subtypes = num_subtypes
+        self.subtypes = subtypes
+        self.attributes = attributes or {}
 
     def __eq__(self, other):
         if not isinstance(other, TypeSpec):
@@ -22,6 +28,13 @@ class TypeSpec:
 
         for i in range(self.num_subtypes):
             if self.subtypes[i] != other.subtypes[i]:
+                return False
+
+        if set(self.attributes.keys()) != set(other.attributes.keys()):
+            return False
+
+        for key, value in self.attributes.items():
+            if value != other.attributes[key]:
                 return False
 
         return True
@@ -98,17 +111,120 @@ class Structure:
 
 #### STRUCTURED OBJECTS ####
 
+class ScopeOptions(Enum):
+    LOCAL = 'local'
+    GLOBAL = 'global'
+
+@dataclass
+class CreateVariable:
+    """
+    Components defining how a StructuredObject creates a value (variable).
+    This registers a value as a variable *inside the parser* with a given name and type.
+    Using this does not mean that the structure has a return type of the type.
+    """
+    name: str
+    """The name of the component"""
+    type: TypeSpec
+    """The type of the component it creates"""
+    scope: ScopeOptions
+    """The scope of the component: local or global"""
+    check_type: str | None
+    """The value / expression to check to make sure the typing is correct"""
+    attributes: dict[str, TypeSpec] | None = None
+
+@dataclass
+class CreateType:
+    """
+    Components defining how a StructuredObject creates a type. It makes this component available
+    as a type in the selected scope.
+    """
+    type: TypeSpec
+    """The typespec for the type the component creates"""
+    scope: ScopeOptions
+    """The scope of the component: local or global"""
+    fields_containers: list[str] | None = None
+    """Variables inside which created variables and types are added to that type's field list."""
+
+
 @dataclass
 class StructuredObject:
     name: str
     '''Structure name. Used only to keep track of each structure.'''
     structure: Structure
     '''The corresponding structure'''
-    value_type: TypeSpec | None
-    '''return type of the structure if it creates a variable'''
-    value_name: str | None
-    '''Variable name created if the structure creates a variable'''
+    create_variable: CreateVariable | None = None
+    '''If the structure adds a variable to the parser, this is defined.'''
+    create_type: CreateType | None = None
+    '''If the structure adds a type to the parser, this is defined.'''
     dependent: bool | None = False
+    '''
+    When false, can be used independently of other structures.
+    When true, can only be called upon when being parsed as part of another structure.
+    '''
+
+#### STRUCTURE FILTERS ####
+
+class StructureFilterComponentType(Enum):
+    AND = "and"
+    STRUCTURE = "structure"
+    CONTAINS = "contains"
+    EXCLUDES = "excludes",
+
+@dataclass
+class StructureFilterComponent:
+    type: StructureFilterComponentType
+    value: str | list[StructureFilterComponent]
+
+    def matches(self, structure: StructuredObject) -> bool:
+        if  self.type == StructureFilterComponentType.AND:
+            for item in self.value:
+                if not item.matches(structure):
+                    return False
+            return True
+
+        elif self.type == StructureFilterComponentType.STRUCTURE:
+            return structure.name == self.value
+
+        elif self.type == StructureFilterComponentType.CONTAINS:
+            match self.value:
+                case "create_variable":
+                    return structure.create_variable is not None
+                case "create_type":
+                    return structure.create_type is not None
+                case _:
+                    raise RuntimeError(f"Structure filter does not support contains query for {self.value}")
+
+        elif self.type == StructureFilterComponentType.EXCLUDES:
+            match self.value:
+                case "create_variable":
+                    return structure.create_variable is None
+                case "create_type":
+                    return structure.create_type is None
+                case _:
+                    raise RuntimeError(f"Structure filter does not support excludes query for {self.value}")
+
+
+
+@dataclass()
+class StructureFilter:
+    all: bool
+    allow_expressions: bool
+    filters: list[StructureFilterComponent]
+    def __init__(self, all_allowed: bool=False, allow_expressions: bool=False, filters: list[StructureFilterComponent]=None):
+        self.all = all_allowed
+        self.allow_expressions = allow_expressions
+        self.filters = filters or []
+
+    def matches(self, structure: StructuredObject) -> bool:
+        if self.all:
+            return True
+        if self.allow_expressions and len(self.filters) == 0:
+            return False
+        for f in self.filters:
+            if not f.matches(structure):
+                return False
+        return True
+
 
 #### TYPES ####
 
