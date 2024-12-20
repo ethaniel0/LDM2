@@ -15,21 +15,20 @@
   },
 
 
-
   {
     "type": "operator",
     "name": "function_call",
     "precedence": 2,
     "components": [
-      {"name":  "function"},
+      {"name":  "function_name"},
       {"name":  "arguments"}
     ]
   },
   {
     "type": "operator_overload",
     "name": "function_call",
-    "function": "function<$typename<T>>",
-    "$arguments": "$typename_attributes.arguments",
+    "function_name": "function<$typename<T>>",
+    "arguments": "$typename_attributes<$function_name>.arguments",
     "return": "$typename<T>"
   }
 ]

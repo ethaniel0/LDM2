@@ -244,7 +244,10 @@ class StructureParser:
                 var_names: list[str] = extract_scope_items(cn, False, parsed_variables)
 
                 if len(var_names) != len(var_types):
-                    raise RuntimeError(f'Non-corresponding types and names for scope')
+                    if len(var_types) == 1:
+                        var_types = [var_types[0]] * len(var_names)
+                    else:
+                        raise RuntimeError(f'Non-corresponding types and names for scope')
 
                 for i in range(len(var_names)):
                     block_context.variables[var_names[i]] = var_types[i]
