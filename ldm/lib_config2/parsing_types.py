@@ -252,7 +252,6 @@ class PrimitiveType:
     '''TypeSpec of the primitive type'''
     superclass: TypeSpec | None
     '''Superclass of the primitive type'''
-    methods: list[Method]
     initialize: PrimitiveTypeInitialize
     value_keywords: list[ValueKeyword]
 

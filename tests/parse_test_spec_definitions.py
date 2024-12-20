@@ -7,7 +7,6 @@ from ldm.source_tokenizer.tokenize import TokenizerItems, Tokenizer
 INT_TYPE = pt.PrimitiveType(
     spec=pt.TypeSpec("int", 0, []),
     superclass=None,
-    methods=[],
     initialize=pt.PrimitiveTypeInitialize("$int"),
     value_keywords=[]
 )
@@ -15,7 +14,6 @@ INT_TYPE = pt.PrimitiveType(
 FLOAT_TYPE = pt.PrimitiveType(
     spec=pt.TypeSpec("float", 0, []),
     superclass=None,
-    methods=[],
     initialize=pt.PrimitiveTypeInitialize("$float"),
     value_keywords=[]
 )
@@ -23,7 +21,6 @@ FLOAT_TYPE = pt.PrimitiveType(
 BOOL_TYPE = pt.PrimitiveType(
     spec=pt.TypeSpec("bool", 0, []),
     superclass=None,
-    methods=[],
     initialize=pt.PrimitiveTypeInitialize("bool"),
     value_keywords=[
         pt.ValueKeyword(

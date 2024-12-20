@@ -2,15 +2,6 @@ from .parsing_types import *
 from typing import Any
 
 
-def parse_method_argument(arg: dict[str, any]) -> MethodArgument:
-    return MethodArgument(arg['name'], arg['type'], arg['optional'])
-
-
-def parse_method(arg: dict[str, any]) -> Method:
-    args = [parse_method_argument(a) for a in arg['arguments']]
-    return Method(arg['name'], args, arg['returns'])
-
-
 def parse_primitive_type_initialize(arg: dict[str, any]) -> PrimitiveTypeInitialize:
     return PrimitiveTypeInitialize(arg['type'])
 
@@ -42,14 +33,13 @@ def string_to_typespec(arg: str) -> TypeSpec:
 
 
 def parse_primitive_type(arg: dict[str, Any]) -> PrimitiveType:
-    methods = [parse_method(m) for m in arg['methods']]
     init = parse_primitive_type_initialize(arg['initialize'])
     if 'is' in arg and arg['is']:
         superclass = string_to_typespec(arg['is'])
     else:
         superclass = None
     typespec = TypeSpec(arg['name'], 0, [])
-    return PrimitiveType(typespec, superclass, methods, init, [])
+    return PrimitiveType(typespec, superclass, init, [])
 
 
 def parse_value_keyword(arg: dict[str, Any]) -> ValueKeyword:

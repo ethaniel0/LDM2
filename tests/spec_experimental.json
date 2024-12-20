@@ -30,5 +30,31 @@
     "function_name": "function<$typename<T>>",
     "arguments": "$typename_attributes<$function_name>.arguments",
     "return": "$typename<T>"
+  },
+
+  {
+    "type": "structure",
+    "name": "make_variable_standard",
+    "components": [
+      {
+        "base": "typename",
+        "name": "type"
+      },
+      {
+        "base": "name",
+        "name": "varname",
+        "type": "new-local"
+      },
+      {
+        "base": "expression",
+        "name": "expr"
+      }
+    ],
+    "create_variables": {
+      "names": ["$varname"],
+      "types": ["$type"],
+      "check_types": ["$expr"],
+      "scopes": ["local"]
+    }
   }
 ]

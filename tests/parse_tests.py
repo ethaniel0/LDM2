@@ -77,7 +77,7 @@ class MyTestCase(unittest.TestCase):
     def test_make_variable_parsing(self):
         source_code = "int x = 5"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -97,7 +97,7 @@ class MyTestCase(unittest.TestCase):
     def test_make_variable_with_simple_operator(self):
         source_code = "int x = 5 + 4"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -119,7 +119,7 @@ class MyTestCase(unittest.TestCase):
     def test_make_variable_with_multiple_operator(self):
         source_code = "int x = 5 + 4 * 6.5"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -147,7 +147,7 @@ class MyTestCase(unittest.TestCase):
 
         source_code = "int x = 5 * 4 + 6"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -174,7 +174,7 @@ class MyTestCase(unittest.TestCase):
     def test_make_variable_with_two_same_precedence_operators_ltr(self):
         source_code = "int x = 5 + 4 + 6"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -200,7 +200,7 @@ class MyTestCase(unittest.TestCase):
     def test_make_variable_with_two_same_precedence_operators_rtl(self):
         source_code = "int x = 5 ++ 4 ++ 6"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -226,7 +226,7 @@ class MyTestCase(unittest.TestCase):
     def test_make_variable_with_minus_and_negation(self):
         source_code = "int x = 5 - -8"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -250,7 +250,7 @@ class MyTestCase(unittest.TestCase):
     def test_make_variable_with_ternary_operator(self):
         source_code = "int x = 5 > 3 ? 1 : 0"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -346,7 +346,7 @@ class MyTestCase(unittest.TestCase):
 
         source_code = "int x = 5 + 2 ? 3 @ 4 $ + 5"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         del SPEC.operators['weird +']
 
@@ -378,7 +378,7 @@ class MyTestCase(unittest.TestCase):
     def test_with_parentheses(self):
         source_code = "int x = (5 + 4) * 6"
         tokens = TOKENIZER.tokenize(source_code)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -410,7 +410,7 @@ class MyTestCase(unittest.TestCase):
         int y = 6 * 3;
         '''
         tokens = TOKENIZER.tokenize(source)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 2
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -470,7 +470,7 @@ class MyTestCase(unittest.TestCase):
         }
         '''
         tokens = TOKENIZER.tokenize(source)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
@@ -489,7 +489,7 @@ class MyTestCase(unittest.TestCase):
         }
         '''
         tokens = TOKENIZER.tokenize(source)
-        ast = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
+        ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
