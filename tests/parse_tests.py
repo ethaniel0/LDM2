@@ -571,7 +571,7 @@ class MyTestCase(unittest.TestCase):
         }
         
         Point translate(Point p, int x, int y){
-            
+            p
         }
       
         """

@@ -166,8 +166,8 @@
             "scope": "local",
             "insert_scope": [
               {
-                "typename": "$arguments.type",
-                "name": "$arguments.name"
+                "type": "$arguments.type",
+                "name": "$arguments.varname"
               }
             ]
           }

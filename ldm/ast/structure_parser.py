@@ -97,6 +97,57 @@ def convert_relative_typespec(t: TypeSpec, node: dict, items: ParsingItems, cont
 
     return ts
 
+def combine_dictionaries(dict1: dict, dict2: dict) -> dict:
+    result = {}
+    for k, v in dict1.items():
+        result[k] = v
+    for k,v in dict2.items():
+        result[k] = v
+    return result
+
+
+def extract_scope_items(component: str, is_type: bool, parsed_variables: dict[str, SOInstanceItem]):
+    if not component.startswith('$'):
+        if is_type:
+            return [string_to_typespec(component)]
+        return [component]
+
+    parts = component[1:].split('.')
+    item = parsed_variables[parts[0]]
+
+    stack = [item]
+
+    for p_num in range(1, len(parts)):
+        p = parts[p_num]
+        sub_items = []
+        for stack_item in stack:
+            if stack_item.item_type == ComponentType.REPEATED_ELEMENT:
+                for i in range(len(stack_item.value)):
+                    if p not in stack_item.value[i]:
+                        raise ValueError(f'item {p_num+1} ({p}) not found in {component}')
+                    sub_item = stack_item.value[i][p]
+                    sub_items.append(sub_item)
+            else:
+                if p not in stack_item.value:
+                    raise ValueError(f'item {p_num+1} ({p}) not found in {component}')
+                sub_item = stack_item.value[p]
+                sub_items.append(sub_item)
+        stack = sub_items
+
+    variables = []
+
+    if is_type:
+        for item in stack:
+            if not isinstance(item, TypenameInstance):
+                raise ValueError(f'Component path {component} is of type {item.item_type}, not TypeName')
+            variables.append(item.value)
+    else:
+        for item in stack:
+            variables.append(item.value)
+
+    return variables
+
+
 class StructureParser:
     def __init__(self, items: ParsingItems, tokenizer_items: TokenizerItems):
         self.items = items
@@ -156,7 +207,7 @@ class StructureParser:
 
         return SOInstanceItem(ComponentType.EXPRESSION, expr)
 
-    def __handle_expressions(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure):
+    def __handle_expressions(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure, parsed_variables):
         comp = structure.component_defs[var_index]
         var = structure.component_specs[comp.value]
 
@@ -181,7 +232,22 @@ class StructureParser:
             filter = to_filter(var.other['filter'])
 
         if 'insert_scope' in var.other:
-            print('INSERT SCOPE')
+            if var.other['insert_scope'] == 'global':
+                raise ValueError("insert_scope can only be used with locally-scoped expressions")
+
+            ins: list[dict] = var.other['insert_scope']
+            for comp in ins:
+                ct: str = comp['type']
+                cn: str = comp['name']
+
+                var_types: list[TypeSpec] = extract_scope_items(ct, True, parsed_variables)
+                var_names: list[str] = extract_scope_items(cn, False, parsed_variables)
+
+                if len(var_names) != len(var_types):
+                    raise RuntimeError(f'Non-corresponding types and names for scope')
+
+                for i in range(len(var_names)):
+                    block_context.variables[var_names[i]] = var_types[i]
 
         sp = StructureParser(self.items, self.tokenizer_items)
         if len(structure.component_defs) <= var_index + 1:
@@ -220,7 +286,7 @@ class StructureParser:
 
         return SOInstanceItem(ComponentType.REPEATED_ELEMENT, elements)
 
-    def __handle_structure(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure):
+    def __handle_structure(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure, parsed_variables: dict[str, SOInstanceItem]):
         comp = structure.component_defs[var_index]
         var = structure.component_specs[comp.value]
         next_structure_name = var.other['structure']
@@ -238,7 +304,7 @@ class StructureParser:
                     originals[item] = None
                 next_comp_specs[var.name].other[item] = val
 
-        node = self.__parse_single_structure(tokens, next_structure.structure, context)
+        node = self.__parse_single_structure(tokens, next_structure.structure, context, parsed_variables)
         sobj = StructuredObjectInstance(next_structure, node)
 
         for o, val in originals.items():
@@ -249,7 +315,8 @@ class StructureParser:
 
         return SOInstanceItem(ComponentType.STRUCTURE, sobj)
 
-    def __handle_variable(self, var_index: int, structure: Structure, tokens: TokenIterator, context: ParsingContext):
+    def __handle_variable(self, var_index: int, structure: Structure, tokens: TokenIterator,
+                          context: ParsingContext, parsed_variables: dict[str, SOInstanceItem]):
         comp = structure.component_defs[var_index]
         if comp.value not in structure.component_specs:
             raise RuntimeError(f"structure component {comp.value} not found")
@@ -264,27 +331,29 @@ class StructureParser:
         elif var.base == ComponentType.EXPRESSION:
             result = self.__handle_expression(tokens, context, var_index, structure)
         elif var.base == ComponentType.EXPRESSIONS:
-            result = self.__handle_expressions(tokens, context, var_index, structure)
+            result = self.__handle_expressions(tokens, context, var_index, structure, parsed_variables)
         elif var.base == ComponentType.REPEATED_ELEMENT:
             result = self.__handle_repeated_element(tokens, context, var_index, structure)
 
         elif var.base == ComponentType.STRUCTURE:
-            result = self.__handle_structure(tokens, context, var_index, structure)
+            result = self.__handle_structure(tokens, context, var_index, structure, parsed_variables)
 
         else:
             raise RuntimeError(f'base {var.base} not recognized')
 
         return var.name, result
 
-    def __parse_single_structure(self, tokens: TokenIterator, structure: Structure, context: ParsingContext):
+    def __parse_single_structure(self, tokens: TokenIterator, structure: Structure, context: ParsingContext, parsed_variables: dict[str, SOInstanceItem] | None = None):
         structure_count = 0
+        reference_parsed_variables = parsed_variables or {}
         parsed_variables: dict[str, SOInstanceItem] = {}
 
         while structure_count < len(structure.component_defs) and not tokens.done():
             s = structure.component_defs[structure_count]
 
             if s.component_type == StructureComponentType.Variable:
-                n, v = self.__handle_variable(structure_count, structure, tokens, context)
+                combined_vars = combine_dictionaries(reference_parsed_variables, parsed_variables)
+                n, v = self.__handle_variable(structure_count, structure, tokens, context, combined_vars)
                 parsed_variables[n] = v
                 structure_count += 1
 
@@ -466,7 +535,7 @@ class StructureParser:
                         item = item.value.components[part]
                     cont_context = item.created_context
                     if cont_context is None:
-                        raise RuntimeError(f"Field container {i} does not have a context defined. Change this item to have local scope.")
+                        raise RuntimeError(f"Field container {container} does not have a context defined. Change this item to have local scope.")
                     for var_name, var_type in cont_context.variables.items():
                         full_typespec.attributes[var_name] = var_type
 
