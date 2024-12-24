@@ -9,7 +9,7 @@ from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
                                    OperatorInstance, ValueToken,
                                    StructuredObjectInstance, NameInstance, TypenameInstance, SOInstanceItem)
 from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent, TypeSpec, \
-    ComponentType, StructureFilter, StructureFilterComponent, StructureFilterComponentType
+    ComponentType, StructureFilter, StructureFilterComponent, StructureFilterComponentType, StructureSpecComponent
 from ldm.ast.expression_parser import ExpressionParser
 
 def to_typespec(token: Token) -> TypeSpec:
@@ -105,7 +105,6 @@ def combine_dictionaries(dict1: dict, dict2: dict) -> dict:
         result[k] = v
     return result
 
-
 def extract_scope_items(component: str, is_type: bool, parsed_variables: dict[str, SOInstanceItem]):
     if not component.startswith('$'):
         if is_type:
@@ -154,11 +153,11 @@ class StructureParser:
         self.tokenizer_items = tokenizer_items
         self.expression_parser = ExpressionParser(items)
 
-    def __handle_typename(self, tokens: TokenIterator, context: ParsingContext):
+    def __handle_typename(self, tokens: TokenIterator, context: ParsingContext, items: ParsingItems):
         # get typename, check primitive types
         tn, _ = next(tokens)
         # check primitive types - if primitive, return basic TypeSpec
-        if tn.value in self.items.config_spec.primitive_types:
+        if tn.value in items.config_spec.primitive_types:
             return TypenameInstance(ComponentType.TYPENAME, TypeSpec(tn.value, 0, []))
 
         # check variables
@@ -195,28 +194,25 @@ class StructureParser:
 
         return NameInstance(ComponentType.NAME, varname.value)
 
-    def __handle_expression(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure):
+    def __handle_expression(self, tokens: TokenIterator, context: ParsingContext, items: ParsingItems, next_component: StructureComponent | None):
         until = ""
-        if var_index < len(structure.component_defs) - 1:
-            next_comp = structure.component_defs[var_index + 1]
-            if next_comp.component_type == StructureComponentType.String:
-                until = next_comp.value
+        if next_component is not None and next_component.component_type == StructureComponentType.String:
+            until = next_component.value
 
-        self.expression_parser.set_tokens_and_context(tokens, context)
-        expr = self.expression_parser.parse(until)
+        expression_parser = ExpressionParser(items)
+
+        expression_parser.set_tokens_and_context(tokens, context)
+        expr = expression_parser.parse(until)
 
         return SOInstanceItem(ComponentType.EXPRESSION, expr)
 
-    def __handle_expressions(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure, parsed_variables):
-        comp = structure.component_defs[var_index]
-        var = structure.component_specs[comp.value]
-
+    def __handle_expressions(self, tokens: TokenIterator, context: ParsingContext, spec_component: StructureSpecComponent, parsed_variables, next_component: StructureComponent, items: ParsingItems, tokenizer_items: TokenizerItems):
         local = False
-        if 'scope' in var.other:
-            if var.other['scope'] == 'local':
+        if 'scope' in spec_component.other:
+            if spec_component.other['scope'] == 'local':
                 local = True
-            elif var.other['scope'] != 'global':
-                raise RuntimeError(f"Unknown scope {var.other['scope']} for expressions")
+            elif spec_component.other['scope'] != 'global':
+                raise RuntimeError(f"Unknown scope {spec_component.other['scope']} for expressions")
 
         returning_context: ParsingContext | None = None
 
@@ -228,14 +224,14 @@ class StructureParser:
             block_context = context
 
         filter = None
-        if 'filter' in var.other:
-            filter = to_filter(var.other['filter'])
+        if 'filter' in spec_component.other:
+            filter = to_filter(spec_component.other['filter'])
 
-        if 'insert_scope' in var.other:
-            if var.other['insert_scope'] == 'global':
+        if 'insert_scope' in spec_component.other:
+            if spec_component.other['insert_scope'] == 'global':
                 raise ValueError("insert_scope can only be used with locally-scoped expressions")
 
-            ins: list[dict] = var.other['insert_scope']
+            ins: list[dict] = spec_component.other['insert_scope']
             for comp in ins:
                 ct: str = comp['type']
                 cn: str = comp['name']
@@ -252,18 +248,17 @@ class StructureParser:
                 for i in range(len(var_names)):
                     block_context.variables[var_names[i]] = var_types[i]
 
-        sp = StructureParser(self.items, self.tokenizer_items)
-        if len(structure.component_defs) <= var_index + 1:
+        sp = StructureParser(items, tokenizer_items)
+        if not next_component:
             raise RuntimeError(f'Expressions variable in structure must have a following string')
-        next_comp_def = structure.component_defs[var_index + 1]
-        if next_comp_def.component_type != StructureComponentType.String:
+        if next_component.component_type != StructureComponentType.String:
             raise NotImplementedError('Variable after an expressions structure component not implemented')
-        result = sp.parse(tokens, block_context, until=next_comp_def.value, filter=filter)
+        result = sp.parse(tokens, block_context, until=next_component.value, filter=filter)
         if result is None:
             raise RuntimeError(f'Could not parse expressions')
         return SOInstanceItem(ComponentType.EXPRESSIONS, result, created_context=returning_context)
 
-    def __handle_repeated_element(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure):
+    def __handle_repeated_element(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure, items: ParsingItems, tokenizer_items: TokenizerItems):
         comp = structure.component_defs[var_index]
         var = structure.component_specs[comp.value]
         new_stucture = Structure(
@@ -276,7 +271,7 @@ class StructureParser:
         if repeat_end.component_type != StructureComponentType.String:
             raise RuntimeError(f'Variables after repeated structures are not yet supported.')
 
-        sp = StructureParser(self.items, self.tokenizer_items)
+        sp = StructureParser(items, tokenizer_items)
 
         elements = []
         while tokens.peek().value != repeat_end.value:
@@ -289,12 +284,12 @@ class StructureParser:
 
         return SOInstanceItem(ComponentType.REPEATED_ELEMENT, elements)
 
-    def __handle_structure(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure, parsed_variables: dict[str, SOInstanceItem]):
+    def __handle_structure(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure, parsed_variables: dict[str, SOInstanceItem], items: ParsingItems):
         comp = structure.component_defs[var_index]
         var = structure.component_specs[comp.value]
         next_structure_name = var.other['structure']
 
-        next_structure = self.items.config_spec.structured_objects[next_structure_name]
+        next_structure = items.config_spec.structured_objects[next_structure_name]
         originals = {}
         next_comp_specs = next_structure.structure.component_specs
         if 'modifiers' in var.other and var.name in var.other['modifiers']:
@@ -321,6 +316,7 @@ class StructureParser:
     def __handle_variable(self, var_index: int, structure: Structure, tokens: TokenIterator,
                           context: ParsingContext, parsed_variables: dict[str, SOInstanceItem]):
         comp = structure.component_defs[var_index]
+        next_comp = structure.component_defs[var_index+1] if var_index < len(structure.component_defs) - 1 else None
         if comp.value not in structure.component_specs:
             raise RuntimeError(f"structure component {comp.value} not found")
         var = structure.component_specs[comp.value]
@@ -328,13 +324,14 @@ class StructureParser:
         result = None
 
         if var.base == ComponentType.TYPENAME:
-            result = self.__handle_typename(tokens, context)
+            result = self.__handle_typename(tokens, context, self.items)
         elif var.base == ComponentType.NAME:
             result = self.__handle_name(comp, structure, tokens, context)
         elif var.base == ComponentType.EXPRESSION:
-            result = self.__handle_expression(tokens, context, var_index, structure)
+            result = self.__handle_expression(tokens, context, self.items, next_comp)
         elif var.base == ComponentType.EXPRESSIONS:
-            result = self.__handle_expressions(tokens, context, var_index, structure, parsed_variables)
+            spec_comp = structure.component_specs[comp.value]
+            result = self.__handle_expressions(tokens, context, spec_comp, parsed_variables, next_comp, self.items, self.tokenizer_items)
         elif var.base == ComponentType.REPEATED_ELEMENT:
             result = self.__handle_repeated_element(tokens, context, var_index, structure)
 
