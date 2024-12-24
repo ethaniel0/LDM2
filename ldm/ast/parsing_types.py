@@ -3,8 +3,11 @@ from dataclasses import dataclass
 from typing import Any
 from enum import Enum
 
+from ldm.lib_config2.spec_parsing import string_to_typespec
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, StructuredObject, ComponentType
+from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, StructuredObject, ComponentType, \
+    StructureComponentType, StructureComponent, OperatorType
+
 
 class TokenIterator:
     def __init__(self, tokens: list[Token]):
@@ -124,7 +127,9 @@ class SOInstanceItem:
     """The type of the item (name, typename, expression, etc.)"""
     value: Any
     """The value of the item"""
+    token: Token
     created_context: ParsingContext | None = None
+    """If the item created a local context (ex. function body), the ending result of that context is stored here."""
 
 
 class NameInstance(SOInstanceItem):
@@ -138,6 +143,11 @@ class TypenameInstance(SOInstanceItem):
     def __init__(self, item_type: ComponentType, value: TypeSpec):
         super().__init__(item_type, value)
 
+@dataclass
+class OperatorFields:
+    result_type: TypeSpec
+    op_type: OperatorType
+    parse_parent: SOInstanceItem | None = None
 
 @dataclass
 class StructuredObjectInstance:
@@ -146,6 +156,87 @@ class StructuredObjectInstance:
     """The structured object that this instance represents"""
     components: dict[str, SOInstanceItem]
     """Dictionary of components, as [component name: component instance object]"""
+    operator_fields: OperatorFields | None = None
+    """Fields needed for an operator, if any."""
+
+    def __init__(self, so: StructuredObject, components: dict[str, SOInstanceItem]):
+        self.so = so
+        self.components = components
+        if not so.create_operator:
+            return
+
+        first_is_expression = so.structure.component_defs[0].component_type == StructureComponentType.Variable and \
+                              so.get_nth_component(0).base == ComponentType.EXPRESSION
+        last_is_expression = so.structure.component_defs[-1].component_type == StructureComponentType.Variable and \
+                             so.get_nth_component(-1).base == ComponentType.EXPRESSION
+
+        if first_is_expression and last_is_expression:
+            op_type = OperatorType.BINARY
+        elif first_is_expression and not last_is_expression:
+            op_type = OperatorType.UNARY_LEFT
+        elif not first_is_expression and last_is_expression:
+            op_type = OperatorType.UNARY_RIGHT
+        else:
+            op_type = OperatorType.INTERNAL
+
+        self.operator_fields = OperatorFields(TypeSpec("", 0, []), op_type)
+
+    def clone(self):
+        return StructuredObjectInstance(self.so, {})
+
+    def get_nth_component(self, n: int):
+        defs = self.so.structure.component_defs
+        def_vars: list[StructureComponent] = list(
+            filter(lambda v: v.component_type == StructureComponentType.Variable, defs)
+        )
+        sc = def_vars[n]
+        return self.components[sc.value]
+
+    def operator_fields_filled(self):
+        if not self.so.create_operator:
+            raise RuntimeError(f'{self.so.name} is not an operator')
+        fields = self.so.create_operator.fields
+        total = 0
+        for field in fields:
+            components = self.extract_from_path(field, False)
+            if components is not None:
+               total += 1
+        return total
+
+    def extract_from_path(self, path: str, is_type: bool):
+        if not path.startswith('$'):
+            if is_type:
+                return [string_to_typespec(path)]
+            return [path]
+
+        parts = path[1:].split('.')
+        item = self.components[parts[0]]
+
+        stack = [item]
+
+        for p_num in range(1, len(parts)):
+            p = parts[p_num]
+            sub_items = []
+            for stack_item in stack:
+                if stack_item.item_type == ComponentType.REPEATED_ELEMENT:
+                    for i in range(len(stack_item.value)):
+                        if p not in stack_item.value[i]:
+                            return None
+                        sub_item = stack_item.value[i][p]
+                        sub_items.append(sub_item)
+                else:
+                    if p not in stack_item.value:
+                        return None
+                    sub_item = stack_item.value[p]
+                    sub_items.append(sub_item)
+            stack = sub_items
+
+        variables = []
+
+        for item in stack:
+            variables.append(item.value)
+
+        return variables
 
     def __str__(self):
         return f"StructuredObjectInstance({self.so.name} {self.components})"

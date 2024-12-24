@@ -145,6 +145,43 @@ class CreateType:
     fields_containers: list[str] | None = None
     """Variables inside which created variables and types are added to that type's field list."""
 
+@dataclass
+class OperatorOverload:
+    name: str
+    return_type: TypeSpec
+    variables: dict[str, TypeSpec]
+
+    def __str__(self):
+        return f"<{self.name}|{self.variables.values()}>"
+
+class Associativity(Enum):
+    LEFT_TO_RIGHT = 0
+    RIGHT_TO_LEFT = 1
+    NONE = 2
+
+@dataclass
+class CreateOperator:
+    fields: list[str]
+    '''The fields in the operator's structure that are adjusted for each overload / used to determine the output type'''
+
+    precedence: int
+    '''The precedence of the operator. Lower precedence hugs values more closely.'''
+
+    associativity: Associativity
+    '''The associativity of the operator. Determines how the operator is parsed in the absence of parentheses'''
+
+    overloads: list[OperatorOverload]
+    '''The overloads of the operator. Contains the return type and the types of the variables 
+    for each combination of types'''
+
+    def overload_matches(self, overload: OperatorOverload):
+        """Checks if an overload configuration matches the operator structure"""
+        # Get all variable names from structure components
+        structure_vars = set(self.fields)
+        overload_vars = set(overload.variables.keys())
+
+        # Check if all variables in overload exist in structure
+        return structure_vars == overload_vars
 
 @dataclass
 class StructuredObject:
@@ -156,11 +193,21 @@ class StructuredObject:
     '''If the structure adds a variable to the parser, this is defined.'''
     create_type: CreateType | None = None
     '''If the structure adds a type to the parser, this is defined.'''
+    create_operator: CreateOperator | None = None
+    '''If the structure acts as an operator, this is defined.'''
     dependent: bool | None = False
     '''
     When false, can be used independently of other structures.
     When true, can only be called upon when being parsed as part of another structure.
     '''
+
+    def get_nth_component(self, n: int):
+        defs = self.structure.component_defs
+        def_vars: list[StructureComponent] = list(
+            filter(lambda v: v.component_type == StructureComponentType.Variable, defs)
+        )
+        sc = def_vars[n]
+        return self.structure.component_specs[sc.value]
 
 #### STRUCTURE FILTERS ####
 
@@ -202,7 +249,6 @@ class StructureFilterComponent:
                     return structure.create_type is None
                 case _:
                     raise RuntimeError(f"Structure filter does not support excludes query for {self.value}")
-
 
 
 @dataclass()
@@ -264,22 +310,6 @@ class UserDefinedType:
 
 
 #### OPERATORS ####
-
-@dataclass
-class OperatorOverload:
-    name: str
-    return_type: TypeSpec
-    variables: dict[str, TypeSpec]
-    
-    def __str__(self):
-        return f"<{self.name}|{self.variables.values()}>"
-
-
-class Associativity(Enum):
-    LEFT_TO_RIGHT = 0
-    RIGHT_TO_LEFT = 1
-    NONE = 2
-
 
 class OperatorType(Enum):
     UNKNOWN = 0
@@ -355,9 +385,9 @@ class Operator:
         for comp in self.structure.component_specs.values():
             if comp.base == ComponentType.OPERATOR_VALUE:
                 structure_vars.add(comp.name)
-        
+
         overload_vars = set(overload.variables.keys())
-                
+
         # Check if all variables in overload exist in structure
         return structure_vars == overload_vars
 

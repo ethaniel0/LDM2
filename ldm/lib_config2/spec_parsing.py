@@ -143,6 +143,71 @@ def parse_operator_overload(arg: dict[str, Any]) -> OperatorOverload:
     
     return OperatorOverload(name, return_typespec, other)
 
+def get_create_variable(arg: dict[str, Any]) -> CreateVariable | None:
+
+    if 'create_variable' not in arg:
+        return None
+
+    scope_options = {
+        'local': ScopeOptions.LOCAL,
+        'global': ScopeOptions.GLOBAL,
+    }
+
+    cv = arg['create_variable']
+
+    if 'name' not in cv:
+        raise ValueError(f"create_variable {cv} must have name specified")
+    if 'type' not in cv:
+        raise ValueError(f"create_variable {cv} must have type specified")
+    if 'scope' not in cv:
+        raise ValueError(f"create_variable {cv} must have scope specified")
+    check_type = None
+    if 'check_type' in cv:
+        check_type = cv['check_type']
+
+    val_name = cv['name']
+    val_type = string_to_typespec(cv['type'])
+    if cv['scope'] not in scope_options:
+        raise ValueError('Scope must be one of local, global')
+    val_scope = scope_options[cv['scope']]
+    return CreateVariable(val_name, val_type, val_scope, check_type)
+
+def get_create_type(arg: dict[str, Any]) -> CreateType | None:
+    if 'create_type' not in arg:
+        return None
+
+    scope_options = {
+        'local': ScopeOptions.LOCAL,
+        'global': ScopeOptions.GLOBAL,
+    }
+
+    ct = arg['create_type']
+    if 'type' not in ct:
+        raise ValueError(f"create_type {ct} must have type specified")
+    if 'scope' not in ct:
+        raise ValueError(f"create_type {ct} must have scope specified")
+    if 'fields_containers' not in ct:
+        raise ValueError(f"create_type {ct} must have fields_containers specified")
+
+    val_type = string_to_typespec(ct['type'])
+
+    if ct['scope'] not in scope_options:
+        raise ValueError('Scope must be one of local, global')
+    val_scope = scope_options[ct['scope']]
+
+    val_fields = ct['fields_containers']
+
+    return CreateType(val_type, val_scope, val_fields)
+
+def get_create_operator(arg: dict[str, Any]) -> CreateOperator | None:
+    if not 'create_operator' in arg:
+        return None
+
+    co = arg['create_operator']
+    if not 'overload_fields' in co:
+        raise ValueError(f"create_operator {co} must specify overload_fields")
+
+    return CreateOperator(co['overload_fields'], 0, Associativity.NONE, [])
 
 def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
     name = arg['name']
@@ -150,52 +215,9 @@ def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
     components = {c.name: c for c in components}
     structure = Structure(components, [])
 
-    create_variable: CreateVariable | None = None
-    create_type: CreateType | None = None
-
-    scope_options = {
-        'local': ScopeOptions.LOCAL,
-        'global': ScopeOptions.GLOBAL,
-    }
-
-    if 'create_variable' in arg:
-        cv = arg['create_variable']
-
-        if 'name' not in cv:
-            raise ValueError(f"create_variable {cv} must have name specified")
-        if 'type' not in cv:
-            raise ValueError(f"create_variable {cv} must have type specified")
-        if 'scope' not in cv:
-            raise ValueError(f"create_variable {cv} must have scope specified")
-        check_type = None
-        if 'check_type' in cv:
-            check_type = cv['check_type']
-
-        val_name = cv['name']
-        val_type = string_to_typespec(cv['type'])
-        if cv['scope'] not in scope_options:
-            raise ValueError('Scope must be one of local, global')
-        val_scope = scope_options[cv['scope']]
-        create_variable = CreateVariable(val_name, val_type, val_scope, check_type)
-
-    if 'create_type' in arg:
-        cv = arg['create_type']
-        if 'type' not in cv:
-            raise ValueError(f"create_type {cv} must have type specified")
-        if 'scope' not in cv:
-            raise ValueError(f"create_type {cv} must have scope specified")
-        if 'fields_containers' not in cv:
-            raise ValueError(f"create_type {cv} must have fields_containers specified")
-
-        val_type = string_to_typespec(cv['type'])
-
-        if cv['scope'] not in scope_options:
-            raise ValueError('Scope must be one of local, global')
-        val_scope = scope_options[cv['scope']]
-
-        val_fields = cv['fields_containers']
-
-        create_type = CreateType(val_type, val_scope, val_fields)
+    create_variable = get_create_variable(arg)
+    create_type = get_create_type(arg)
+    create_operator = get_create_operator(arg)
 
     is_dependent = False
 
@@ -207,6 +229,7 @@ def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
         structure=structure,
         create_variable=create_variable,
         create_type=create_type,
+        create_operator=create_operator,
         dependent=is_dependent,
     )
 
@@ -246,12 +269,14 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                 raise ValueError(f"Unknown type {item['type']}")
     
     for overload in operator_overloads:
-        if overload.name not in operators:
+        if overload.name not in structured_objects:
             raise ValueError(f'type {overload.name} does not exist for overload to connect to')
-        op = operators[overload.name]
-        if not op.overload_matches(overload):
+        op = structured_objects[overload.name]
+        if not op.create_operator:
+            raise ValueError(f"Structure {overload.name} is not an operatorx")
+        if not op.create_operator.overload_matches(overload):
             raise ValueError(f'operator overload {overload} does not match operator structure for operator {op.name}')
-        op.overloads.append(overload)        
+        op.create_operator.overloads.append(overload)
 
     # build type tree
     type_tree_roots = build_type_tree(primitive_types)

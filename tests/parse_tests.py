@@ -583,6 +583,17 @@ class MyTestCase(unittest.TestCase):
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
         assert isinstance(ast[1], ast_pt.StructuredObjectInstance)
 
+    def test_operator(self):
+        spec = load_setup()
+        source_code = """
+        int x = 4 + 5;
+        """
+        tokens = TOKENIZER.tokenize(source_code)
+
+        ast, context = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
+
+        assert len(ast) == 1
+        assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
 
 if __name__ == '__main__':
     unittest.main()
