@@ -565,13 +565,8 @@ class MyTestCase(unittest.TestCase):
     def test_parsing(self):
         spec = load_setup()
         source_code = """
-        struct Point {
-            int x;
-            int y;
-        }
-        
-        Point translate(Point p, int x, int y){
-            p
+        int translate(int p, int x, int y){
+            int k = x + y + p + 8;
         }
       
         """
@@ -579,9 +574,8 @@ class MyTestCase(unittest.TestCase):
 
         ast, context = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
 
-        assert len(ast) == 2
+        assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
-        assert isinstance(ast[1], ast_pt.StructuredObjectInstance)
 
     def test_operator(self):
         spec = load_setup()

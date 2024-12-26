@@ -238,6 +238,8 @@ class StructureFilterComponent:
                     return structure.create_variable is not None
                 case "create_type":
                     return structure.create_type is not None
+                case "create_operator":
+                    return structure.create_operator is not None
                 case _:
                     raise RuntimeError(f"Structure filter does not support contains query for {self.value}")
 
@@ -247,6 +249,8 @@ class StructureFilterComponent:
                     return structure.create_variable is None
                 case "create_type":
                     return structure.create_type is None
+                case "create_operator":
+                    return structure.create_operator is None
                 case _:
                     raise RuntimeError(f"Structure filter does not support excludes query for {self.value}")
 
@@ -260,6 +264,12 @@ class StructureFilter:
         self.all = all_allowed
         self.allow_expressions = allow_expressions
         self.filters = filters or []
+
+    def clone(self):
+        return StructureFilter(self.all, self.allow_expressions, self.filters[:])
+
+    def add_filter(self, filter_component: StructureFilterComponent):
+        self.filters.append(filter_component)
 
     def matches(self, structure: StructuredObject) -> bool:
         if self.all:

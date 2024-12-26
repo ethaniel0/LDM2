@@ -1,7 +1,7 @@
 from __future__ import annotations
 from ldm.source_tokenizer.tokenize import Token, TokenType
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
-                                   OperatorInstance, ValueToken, StructuredObjectInstance, OperatorFields,
+                                   OperatorInstance, ValueToken, StructuredObjectInstance,
                                    SOInstanceItem)
 from ldm.lib_config2.parsing_types import StructureComponentType, TypeSpec, OperatorType, Associativity, ComponentType
 from ldm.ast.type_checking import type_operator
@@ -75,6 +75,8 @@ class ExpressionParser:
                     ep = ExpressionParser(self.items)
                     ep.set_tokens_and_context(self.tokens, self.parsing_context)
 
+                    first_token = self.tokens.peek()
+
                     # parse_until_full_tree only parses until the next value or operator or expression separator,
                     # so it doesn't parse any more than it needs to before checking for the next structure component
                     tree = ep.parse_until_full_tree()
@@ -84,7 +86,7 @@ class ExpressionParser:
                     # if that's the end of the operator's structure,
                     # add the tree to the operator's operands and continue
                     if i == len(op_components) - 1:
-                        op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree)
+                        op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree, first_token)
                         components_parsed += 1
                         continue
 
@@ -104,7 +106,7 @@ class ExpressionParser:
                             tree = new_tree
 
                         if successful:
-                            op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree)
+                            op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree, first_token)
                             components_parsed += 1
                         else:
                             break
@@ -117,7 +119,7 @@ class ExpressionParser:
                         while new_tree is not None:
                             tree = new_tree
                             new_tree = ep.parse_until_full_tree()
-                        op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree)
+                        op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree, first_token)
                         components_parsed += 1
 
                 # if the next structure component is a string, check if the next token is that string

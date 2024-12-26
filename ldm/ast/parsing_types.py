@@ -134,14 +134,14 @@ class SOInstanceItem:
 
 class NameInstance(SOInstanceItem):
     """Structured Object Instance Item for a name (string name of variable)"""
-    def __init__(self, item_type: ComponentType, value: str):
-        super().__init__(item_type, value)
+    def __init__(self, item_type: ComponentType, value: str, token: Token):
+        super().__init__(item_type, value, token)
 
 
 class TypenameInstance(SOInstanceItem):
     """Structured Object Instance Item for a typename (TypeSpec)"""
-    def __init__(self, item_type: ComponentType, value: TypeSpec):
-        super().__init__(item_type, value)
+    def __init__(self, item_type: ComponentType, value: TypeSpec, token: Token):
+        super().__init__(item_type, value, token)
 
 @dataclass
 class OperatorFields:
@@ -202,6 +202,16 @@ class StructuredObjectInstance:
             if components is not None:
                total += 1
         return total
+
+    def operator_num_lefts(self):
+        num = 0
+        for d in self.so.structure.component_defs:
+            if d.component_type == StructureComponentType.Variable and \
+                    self.so.structure.component_specs[d.value].base == ComponentType.EXPRESSION:
+                num += 1
+            else:
+                break
+        return num
 
     def extract_from_path(self, path: str, is_type: bool):
         if not path.startswith('$'):
