@@ -98,21 +98,6 @@ def add_value_keyword_def(spec: Spec, arg: dict):
     spec.initializer_formats[typed_name] = init_format
 
 
-def add_keyword_def(spec: Spec, arg: dict):
-    name = arg['name']
-    kname = 'keyword-'+name
-    components = parse_structure_into_components(arg['structure'])
-    if kname not in spec.structured_objects:
-        raise ValueError(f"Keyword {name} not found")
-    if len(spec.structured_objects[kname].structure.component_defs) > 0:
-        raise ValueError(f"Keyword {name} already has a definition")
-    spec.structured_objects[kname].structure.component_defs = components
-
-    trigger = get_trigger(components)
-    if trigger == '':
-        raise ValueError(f"Keyword {name} has no symbols")
-
-
 def parse_component_structures(arg: dict[str, Any], spec_components: dict[str, StructureSpecComponent]) -> list[StructureComponent]:
     structure = arg['structure']
     components = parse_structure_into_components(structure)
@@ -140,39 +125,53 @@ def add_def_to_structured(type: str, arg: dict[str, Any], spec: Spec):
     comp_name = arg['name']
     if comp_name not in spec.structured_objects:
         raise ValueError(f"{type} {comp_name} not found")
-    if len(spec.structured_objects[comp_name].structure.component_defs) > 0:
+
+    so = spec.structured_objects[comp_name]
+
+    if len(so.structure.component_defs) > 0:
         raise ValueError(f"{type} {comp_name} already has a definition")
-    components = parse_component_structures(arg, spec.structured_objects[comp_name].structure.component_specs)
 
-    if type == 'keyword':
-        trigger = get_trigger(components)
-        if trigger == '':
-            raise ValueError(f"{type} {comp_name} has no identifying symbols")
-    else:
-        has_non_expression_parameter = False
-        '''check to make sure the structure has something other than an expression'''
-        for comp in components:
-            if comp.component_type == StructureComponentType.String:
-                has_non_expression_parameter = True
-                break
-            component_specs = spec.structured_objects[comp_name].structure.component_specs
-            comp_type = component_specs[comp.value].base
-            if comp_type != 'expression' and comp_type != 'expressions':
-                has_non_expression_parameter = True
-                break
-        if not has_non_expression_parameter:
-            raise ValueError(f"{type} {comp_name} must have at least one non-expression parameter")
+    components = parse_component_structures(arg, so.structure.component_specs)
 
-    spec.structured_objects[comp_name].structure.component_defs = components
+    has_non_expression_parameter = False
+    '''check to make sure the structure has something other than an expression'''
+    for comp in components:
+        if comp.component_type == StructureComponentType.String:
+            has_non_expression_parameter = True
+            break
+        component_specs = so.structure.component_specs
+        comp_type = component_specs[comp.value].base
+        if comp_type != 'expression' and comp_type != 'expressions':
+            has_non_expression_parameter = True
+            break
+    if not has_non_expression_parameter:
+        raise ValueError(f"{type} {comp_name} must have at least one non-expression parameter")
+
+    so.structure.component_defs = components
+
+    if 'create_operator' in arg:
+        aco = arg['create_operator']
+        if 'associativity' not in aco:
+            so.create_operator.associativity = Associativity.LEFT_TO_RIGHT
+
+        match aco['associativity']:
+            case 'left-to-right':
+                so.create_operator.associativity = Associativity.LEFT_TO_RIGHT
+            case 'right-to-left':
+                so.create_operator.associativity = Associativity.RIGHT_TO_LEFT
+            case 'none':
+                so.create_operator.associativity = Associativity.NONE
+            case _:
+                raise ValueError(f"Unknown associativity {aco['associativity']}")
+
+        so.create_operator.precedence = aco['precedence']
 
 
 def add_structure_definitions_to_spec(spec: Spec, args: list[dict[str, str]]):
     for arg in args:
         comp_type = arg['type']
 
-        if comp_type in ['make_variable', 'make_object', 'keyword']:
-            add_def_to_structured(comp_type, arg, spec)
-        elif comp_type in 'structure':
+        if comp_type == 'structure':
             add_def_to_structured('structure', arg, spec)
         elif comp_type == 'operator':
             add_operator_def(spec, arg)

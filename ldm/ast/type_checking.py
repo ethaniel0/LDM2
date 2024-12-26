@@ -1,4 +1,4 @@
-from ldm.ast.parsing_types import OperatorInstance, ParsingItems, ValueToken
+from ldm.ast.parsing_types import OperatorInstance, ParsingItems, ValueToken, StructuredObjectInstance
 from ldm.lib_config2.parsing_types import TypeSpec, StructureComponentType
 
 
@@ -15,23 +15,22 @@ def typespec_matches(t1: TypeSpec, t2: TypeSpec) -> bool:
     return True
 
 
-def type_operator(op: OperatorInstance, parsing_items: ParsingItems):
+def type_operator(op: StructuredObjectInstance, parsing_items: ParsingItems):
     types: dict[str, TypeSpec] = {}
 
-    var_components = [d for d in op.operator.structure.component_defs
-                      if d.component_type == StructureComponentType.Variable]
+    var_components = op.so.create_operator.fields
 
-    for i, comp in enumerate(op.operands):
-        val_name = var_components[i].value
-        if isinstance(comp, OperatorInstance):
+    for i, val_name in enumerate(var_components):
+        comp = op.components[val_name]
+        if isinstance(comp, StructuredObjectInstance):
             type_operator(comp, parsing_items)
-            types[val_name] = comp.result_type
+            types[val_name] = comp.operator_fields.result_type
         elif isinstance(comp, ValueToken):
             types[val_name] = comp.var_type
 
     generics_map = {}
 
-    for overload in op.operator.overloads:
+    for overload in op.so.create_operator.overloads:
         if len(overload.variables) != len(types):
             continue
 
@@ -53,11 +52,11 @@ def type_operator(op: OperatorInstance, parsing_items: ParsingItems):
 
         if works:
             if overload.return_type.name == '$typename':
-                op.result_type = generics_map[overload.return_type.name]
+                op.operator_fields.result_type = generics_map[overload.return_type.name]
             else:
-                op.result_type = overload.return_type
+                op.operator_fields.result_type = overload.return_type
             return
 
-    raise ValueError(f"No overload found for operator {op.operator.name} with types {types}")
+    raise ValueError(f"No overload found for operator {op.so.name} with types {types}")
 
 

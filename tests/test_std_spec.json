@@ -274,12 +274,16 @@
 
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "+",
     "components": [
-          {"name": "left"},
-          {"name": "right"}
-    ]
+          {"base": "expression", "name": "left"},
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left", "right"]
+    }
+
   },
   {
     "type": "operator_overload",
@@ -300,198 +304,5 @@
     "type": "operator_overload",
     "name": "+",
     "left": "float", "right": "float", "return": "float"
-  },
-
-  {
-    "type": "operator",
-    "name": "-",
-    "components": [
-          {"name": "left"},
-          {"name": "right"}
-    ]
-  },
-  {
-    "type": "operator_overload",
-    "name": "-",
-    "left": "int", "right": "int", "return": "int"
-  },
-  {
-    "type": "operator_overload",
-    "name": "-",
-    "left": "int", "right": "float", "return": "float"
-  },
-  {
-    "type": "operator_overload",
-    "name": "-",
-    "left": "float", "right": "int", "return": "float"
-  },
-  {
-    "type": "operator_overload",
-    "name": "-",
-    "left": "float", "right": "float", "return": "float"
-  },
-
-  {
-    "type": "operator",
-    "name": "neg",
-    "components": [
-          {"name": "right"}
-    ]
-  },
-  {
-    "type": "operator_overload",
-    "name": "neg",
-    "right": "int", "return": "int"
-  },
-  {
-    "type": "operator_overload",
-    "name": "neg",
-    "right": "float", "return": "float"
-  },
-
-  {
-    "type": "operator",
-    "name": "*",
-    "components": [
-          {"name": "left"},
-          {"name": "right"}
-    ]
-  },
-  {
-    "type": "operator_overload",
-    "name": "*",
-    "left": "int", "right": "int", "return": "int"
-  },
-  {
-    "type": "operator_overload",
-    "name": "*",
-    "left": "int", "right": "float", "return": "float"
-  },
-  {
-    "type": "operator_overload",
-    "name": "*",
-    "left": "float", "right": "int", "return": "float"
-  },
-  {
-    "type": "operator_overload",
-    "name": "*",
-    "left": "float", "right": "float", "return": "float"
-  },
-
-  {
-    "type": "operator",
-    "name": "?:",
-    "components": [
-          {"name": "left"},
-          {"name": "middle"},
-          {"name": "right"}
-    ]
-  },
-  {
-    "type": "operator_overload",
-    "name": "?:",
-    "left": "bool",
-    "middle": "$typename<T>",
-    "right": "$typename<T>",
-    "return": "$typename<T>"
-  },
-
-  {
-    "type": "operator",
-    "name": "()",
-    "precedence": 0,
-    "components": [
-          {"name": "inside"}
-    ]
-  },
-  {
-    "type": "operator_overload",
-    "name": "()",
-    "inside": "$typename<T>",
-    "return": "$typename<T>"
-  },
-
-  {
-    "type": "operator",
-    "name": "<",
-    "components": [
-          {"name": "left"},
-          {"name": "right"}
-    ],
-    "returns": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": "<",
-    "left": "int", "right": "int",
-    "return": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": "<",
-    "left": "float", "right": "int",
-    "return": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": "<",
-    "left": "int", "right": "float",
-    "return": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": "<",
-    "left": "float", "right": "float",
-    "return": "bool"
-  },
-
-  {
-    "type": "operator",
-    "name": ">",
-    "components": [
-          {"name": "left"},
-          {"name": "right"}
-    ],
-    "returns": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": ">",
-    "left": "int", "right": "int",
-    "return": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": ">",
-    "left": "float", "right": "int",
-    "return": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": ">",
-    "left": "int", "right": "float",
-    "return": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": ">",
-    "left": "float", "right": "float",
-    "return": "bool"
-  },
-
-  {
-    "type": "operator",
-    "name": "=",
-    "components": [
-          {"name": "left"},
-          {"name": "right"}
-    ],
-    "returns": "bool"
-  },
-  {
-    "type": "operator_overload",
-    "name": "=",
-    "left": "$typename<T>", "right": "$typename<T>",
-    "return": "$typename<T>"
   }
 ]

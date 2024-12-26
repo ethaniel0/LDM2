@@ -1,45 +1,45 @@
 from __future__ import annotations
 from ldm.source_tokenizer.tokenize import Token, TokenType
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
-                                   OperatorInstance, ValueToken)
-from ldm.lib_config2.parsing_types import StructureComponentType, TypeSpec, OperatorType, Associativity
+                                   OperatorInstance, ValueToken, StructuredObjectInstance,
+                                   SOInstanceItem)
+from ldm.lib_config2.parsing_types import StructureComponentType, TypeSpec, OperatorType, Associativity, ComponentType
 from ldm.ast.type_checking import type_operator
 
 class ExpressionParser:
     def __init__(self, items: ParsingItems):
         self.items = items
-        self.stack: list[ValueToken | OperatorInstance] = []
-        self.workingOperator: ValueToken | OperatorInstance | None = None
+        self.stack: list[ValueToken | StructuredObjectInstance] = []
+        self.workingOperator: ValueToken | StructuredObjectInstance | None = None
         self.tokens = TokenIterator([])
         self.parsing_context = ParsingContext()
 
-    def __create_operator_list(self, token: Token) -> list[OperatorInstance]:
+    def __create_operator_list(self, token: Token) -> list[StructuredObjectInstance]:
         if token.type != TokenType.Operator:
             return []
 
-        possible_operators = []
+        possible_operators: list[StructuredObjectInstance] = []
 
         has_left = False
+        """if the operator must take a variable to its left"""
 
         if self.workingOperator is not None and \
-                len(self.workingOperator.operands) == self.workingOperator.operator.num_variables:
+                self.workingOperator.operator_fields_filled() == len(self.workingOperator.so.create_operator.fields):
             has_left = True
 
         elif not self.workingOperator and len(self.stack) > 0:
             has_left = True
 
-        for op in self.items.config_spec.operators.values():
-            if op.trigger == token.value:
-                if not has_left and (
-                    op.operator_type == OperatorType.UNARY_RIGHT or
-                    op.operator_type == OperatorType.INTERNAL
-                ):
-                    possible_operators.append(OperatorInstance(op, [], TypeSpec('', 0, []), None, token))
-                elif has_left and (
-                    op.operator_type == OperatorType.UNARY_LEFT or
-                    op.operator_type == OperatorType.BINARY
-                ):
-                    possible_operators.append(OperatorInstance(op, [], TypeSpec('', 0, []), None, token))
+        for op in self.items.config_spec.structured_objects.values():
+            if not op.create_operator:
+                continue
+
+            soi = StructuredObjectInstance(op, {})
+
+            if (has_left and soi.operator_fields.op_type in [OperatorType.UNARY_LEFT, OperatorType.BINARY]) or \
+                (not has_left and soi.operator_fields.op_type in [OperatorType.UNARY_RIGHT, OperatorType.INTERNAL]):
+
+                possible_operators.append(soi)
 
         return possible_operators
 
@@ -54,8 +54,8 @@ class ExpressionParser:
 
         # try parsing for each operator, if parsing works for the operator's whole structure, add it to working_ops
         for op in ops:
-            op_has_left = op.operator.operator_type in [OperatorType.UNARY_LEFT, OperatorType.BINARY]
-            op_components = op.operator.structure.component_defs
+            op_has_left = op.operator_fields.op_type in [OperatorType.UNARY_LEFT, OperatorType.BINARY]
+            op_components = op.so.structure.component_defs
             index = 0
             # operators are recognized by their non-variable components,
             # so the previous variable components (which have already been parsed) are skipped
@@ -75,6 +75,8 @@ class ExpressionParser:
                     ep = ExpressionParser(self.items)
                     ep.set_tokens_and_context(self.tokens, self.parsing_context)
 
+                    first_token = self.tokens.peek()
+
                     # parse_until_full_tree only parses until the next value or operator or expression separator,
                     # so it doesn't parse any more than it needs to before checking for the next structure component
                     tree = ep.parse_until_full_tree()
@@ -84,7 +86,7 @@ class ExpressionParser:
                     # if that's the end of the operator's structure,
                     # add the tree to the operator's operands and continue
                     if i == len(op_components) - 1:
-                        op.operands.append(tree)
+                        op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree, first_token)
                         components_parsed += 1
                         continue
 
@@ -104,7 +106,7 @@ class ExpressionParser:
                             tree = new_tree
 
                         if successful:
-                            op.operands.append(tree)
+                            op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree, first_token)
                             components_parsed += 1
                         else:
                             break
@@ -117,7 +119,7 @@ class ExpressionParser:
                         while new_tree is not None:
                             tree = new_tree
                             new_tree = ep.parse_until_full_tree()
-                        op.operands.append(tree)
+                        op.components[comp.value] = SOInstanceItem(ComponentType.STRUCTURE, tree, first_token)
                         components_parsed += 1
 
                 # if the next structure component is a string, check if the next token is that string
@@ -132,11 +134,11 @@ class ExpressionParser:
                 continue
 
             # if operator has all right components (first left has already been accounted for)
-            if op_has_left and len(op.operands) == op.operator.num_variables - 1:
+            if op_has_left and op.operator_fields_filled() == len(op.so.create_operator.fields) - 1:
                 working_ops.append(op)
                 ending_indices.append(self.tokens.current_index())
             # if operator has no left components and all components have been parsed
-            elif not op_has_left and len(op.operands) == op.operator.num_variables:
+            elif not op_has_left and op.operator_fields_filled() == len(op.so.create_operator.fields):
                 working_ops.append(op)
                 ending_indices.append(self.tokens.current_index())
 
@@ -154,12 +156,12 @@ class ExpressionParser:
             max_components = 0
 
             for i in range(len(working_ops)):
-                if len(working_ops[i].operands) > max_components:
-                    max_components = len(working_ops[i].operands)
+                if len(working_ops[i].so.create_operator.fields) > max_components:
+                    max_components = len(working_ops[i].so.create_operator.fields)
                     op_choice = working_ops[i]
                     self.tokens.goto(ending_indices[i])
 
-        left_component = op_choice.operator.structure.component_defs[0]
+        left_component = op_choice.so.structure.component_defs[0]
         has_left = left_component.component_type == StructureComponentType.Variable
 
         if self.workingOperator is None:
@@ -237,7 +239,7 @@ class ExpressionParser:
             op_head = op_head.parse_parent
         return op_head
 
-    def parse_until_full_tree(self) -> ValueToken | OperatorInstance | None:
+    def parse_until_full_tree(self) -> ValueToken | StructuredObjectInstance | None:
         while not self.tokens.done():
             t, i = next(self.tokens)
             if t.type == TokenType.Operator:
@@ -252,7 +254,7 @@ class ExpressionParser:
                 val = self.__parse_value(t)
                 self.stack.append(val)
 
-            if self.workingOperator and len(self.workingOperator.operands) == self.workingOperator.operator.num_variables:
+            if self.workingOperator and self.workingOperator.operator_fields_filled() == len(self.workingOperator.so.create_operator.fields):
                 return self.__get_op_head()
 
             if len(self.stack) == 1 and self.workingOperator is None:
@@ -260,7 +262,7 @@ class ExpressionParser:
 
         if self.workingOperator and len(self.stack) != 0 or not self.workingOperator and len(self.stack) != 1:
             return None
-        if self.workingOperator and len(self.workingOperator.operands) < self.workingOperator.operator.num_variables:
+        if self.workingOperator and self.workingOperator.operator_fields_filled() < len(self.workingOperator.so.create_operator.fields):
             return None
 
         if self.workingOperator:
@@ -268,18 +270,18 @@ class ExpressionParser:
 
         return self.stack[0]
 
-    def parse(self, until="", singular=True) -> ValueToken | OperatorInstance | list[ValueToken | OperatorInstance]:
-        self.workingOperator: ValueToken | OperatorInstance | None = None
-        self.stack: list[ValueToken | OperatorInstance] = []
+    def parse(self, until="", singular=True) -> ValueToken | StructuredObjectInstance | list[ValueToken | OperatorInstance]:
+        self.workingOperator: ValueToken | StructuredObjectInstance | None = None
+        self.stack: list[ValueToken | StructuredObjectInstance] = []
 
-        result: None | ValueToken | OperatorInstance = None
+        result: None | ValueToken | StructuredObjectInstance = None
         while not self.tokens.done() and self.tokens.peek().type != TokenType.ExpressionSeparator:
             if until and self.tokens.peek().value == until:
                 break
             r = self.parse_until_full_tree()
             if r is None and result is None:
                 raise RuntimeError(f'Could not parse expression starting with token {self.tokens.peek()} at line {self.tokens.peek().line}')
-            if r is None and isinstance(result, OperatorInstance):
+            if r is None and isinstance(result, StructuredObjectInstance):
                 self.stack.append(result)
             result = r
 
@@ -289,7 +291,14 @@ class ExpressionParser:
         if singular and len(self.stack) > 1:
             if isinstance(self.stack[0], ValueToken):
                 raise RuntimeError(f'Expression does not simplify to a singular value at {self.stack[0].value.line}')
-            raise RuntimeError(f'Expression does not simplify to a singular value at {self.stack[0].token.line}')
+            first_stack_comp = self.stack[0]
+            first_var = None
+            for item in first_stack_comp.so.structure.component_defs:
+                if item.component_type == StructureComponentType.Variable:
+                    first_var = item
+                    break
+            first_comp = first_stack_comp.components[first_var.value]
+            raise RuntimeError(f'Expression does not simplify to a singular value at {first_comp.token.line}')
 
         if len(self.stack) == 0 and self.workingOperator:
             op_head = self.__get_op_head()

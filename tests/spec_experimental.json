@@ -56,5 +56,22 @@
       "check_types": ["$expr"],
       "scopes": ["local"]
     }
+  },
+
+  {
+    "type": "structure",
+    "name": "+",
+    "components": [
+          {"base": "expression", "name": "left"},
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left", "right"]
+    }
+  },
+  {
+    "type": "operator_overload",
+    "name": "+",
+    "left": "int", "right": "int", "return": "int"
   }
 ]
