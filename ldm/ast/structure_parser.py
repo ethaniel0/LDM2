@@ -3,8 +3,7 @@ from __future__ import annotations
 from ldm.ast.type_checking import typespec_matches, type_operator
 from ldm.lib_config2.spec_parsing import string_to_typespec
 from ldm.source_tokenizer.tokenize import Token, TokenizerItems, Tokenizer
-from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext,
-                                   OperatorInstance, ValueToken,
+from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext, ValueToken,
                                    StructuredObjectInstance, NameInstance, TypenameInstance, SOInstanceItem)
 from ldm.lib_config2.parsing_types import Structure, StructureComponentType, StructureComponent, TypeSpec, \
     ComponentType, StructureFilter, StructureFilterComponent, StructureFilterComponentType, StructuredObject, \
@@ -211,6 +210,8 @@ class StructureParser:
 
         if short:
             expr = self.__parse_expression_to_full_tree(tokens, context, [], None, filter)
+            if expr is None:
+                raise RuntimeError(f'Could not parse expression at line {tokens.peek().line}')
         else:
             expr = self.__parse_expression(tokens, context, filter, until)
         next_token = tokens.peek()
@@ -464,7 +465,7 @@ class StructureParser:
                     tree = tree.operator_fields.parse_parent
 
                 if item != tree:
-                    tree_last_expr = item.so.structure.component_defs[-1].value
+                    tree_last_expr = tree.so.structure.component_defs[-1].value
                     item_first_expr = item.so.structure.component_defs[0].value
                     item.components[item_first_expr] = tree.components[tree_last_expr]
                     tree.components[tree_last_expr] = item
@@ -473,9 +474,15 @@ class StructureParser:
                 return tree
 
         else:
+            if tree is None and len(stack) == 0:
+                return item
+
             if len(item.components) == 0:
                 raise RuntimeError(f"Unexpected Operator {item.so.name} (line coming later)")
+
             first_filled_var = list(item.components.values())[0]
+            if isinstance(first_filled_var, ValueToken):
+                raise RuntimeError(f'Unexpected operator {item.so.name} at line {first_filled_var.value.line}')
             raise RuntimeError(f'Unexpected operator {item.so.name} at line {first_filled_var.token.line}')
 
     def __parse_expression_to_full_tree(self,
@@ -489,7 +496,25 @@ class StructureParser:
                 next(tokens)
                 break
 
-            structures = self.__create_structure_list(tokens, context, active_filter, skip_first_expressions=True)
+            needs_left = False
+            if tree is not None and \
+                    tree.operator_fields_filled() == len(tree.so.create_operator.fields):
+                needs_left = True
+            elif not tree and len(stack) > 0:
+                needs_left = True
+
+            if needs_left:
+                filter_comp1 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "binary")
+                filter_comp2 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "unary_left")
+            else:
+                filter_comp1 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "internal")
+                filter_comp2 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "unary_right")
+
+            af = active_filter.clone()
+            af.add_filter(filter_comp1)
+            af.add_filter(filter_comp2)
+
+            structures = self.__create_structure_list(tokens, context, af, skip_first_expressions=True)
 
             parse_as_variable = False
             max_structure, max_structure_index = None, 0
@@ -551,12 +576,6 @@ class StructureParser:
                            until=""):
         if not filter:
             filter = StructureFilter()
-        else:
-            filter = filter.clone()
-
-        filter.add_filter(
-            StructureFilterComponent(StructureFilterComponentType.CONTAINS, "create_operator")
-        )
 
         stack = []
 
@@ -570,6 +589,8 @@ class StructureParser:
                 break
 
             result = self.__parse_expression_to_full_tree(tokens, context, stack, tree, filter)
+            if result is None:
+                raise RuntimeError(f'Could not parse expression at line {tokens.peek().line}')
             if isinstance(result, StructuredObjectInstance):
                 tree = result
 
@@ -604,6 +625,8 @@ class StructureParser:
             if s.component_type == StructureComponentType.Variable:
                 combined_vars = combine_dictionaries(reference_parsed_variables, soi.components)
                 n, v = self.__handle_variable(structure_count, structure, tokens, context, combined_vars, filter, last_expression_short and is_last)
+                if v is None:
+                    raise RuntimeError(f'Could not parse variable {n} at line {tokens.peek().line}')
                 soi.components[n] = v
                 structure_count += 1
 
@@ -637,10 +660,25 @@ class StructureParser:
                         first_component = d
                         break
 
+            if first_component.component_type == StructureComponentType.String:
+                # tokenize
+                tokenizer = Tokenizer(self.tokenizer_items)
+                string_tokens = tokenizer.tokenize(first_component.value)
 
-            if first_component.component_type == StructureComponentType.String and first_component.value == token.value:
-                soi = StructuredObjectInstance(so, {})
-                possible_structures.append(soi)
+                cur_index = tokens.current_index()
+                wanted_char = token.char
+                works = True
+
+                for ind, tok in enumerate(string_tokens):
+                    t = tokens.peek(cur_index + ind)
+                    if tok.value != t.value or (wanted_char and t.char != wanted_char):
+                        works = False
+                        break
+                    wanted_char += len(tok.value)
+
+                if works:
+                    soi = StructuredObjectInstance(so, {})
+                    possible_structures.append(soi)
 
             elif first_component.component_type == StructureComponentType.Variable:
                 spec_component = so.structure.component_specs[first_component.value]
@@ -688,7 +726,7 @@ class StructureParser:
             active_filter: StructureFilter | None,
             error_on_failure: bool = True,
             skip_first_expressions: bool = False,
-            last_expression_short: bool = False,
+            last_expression_short: bool = False
     ):
         if len(structures) == 0:
             if active_filter and not active_filter.allow_expressions:
@@ -749,7 +787,7 @@ class StructureParser:
 
         return max_structure, max_index
 
-    def parse(self, tokens: TokenIterator, context: ParsingContext, until="", filter: StructureFilter | None = None) -> list[StructuredObjectInstance | OperatorInstance | ValueToken]:
+    def parse(self, tokens: TokenIterator, context: ParsingContext, until="", filter: StructureFilter | None = None) -> list[StructuredObjectInstance | ValueToken]:
 
         ast_nodes = []
         while not tokens.done():

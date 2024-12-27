@@ -82,7 +82,6 @@ class ComponentType(Enum):
     EXPRESSIONS = 'expressions',
     REPEATED_ELEMENT = 'repeated_element',
     STRUCTURE = 'structure',
-    OPERATOR_VALUE = 'operator_value'
 
 
 @dataclass
@@ -216,6 +215,7 @@ class StructureFilterComponentType(Enum):
     STRUCTURE = "structure"
     CONTAINS = "contains"
     EXCLUDES = "excludes",
+    OPERATOR_TYPE = "operator_type"
 
 @dataclass
 class StructureFilterComponent:
@@ -254,6 +254,54 @@ class StructureFilterComponent:
                 case _:
                     raise RuntimeError(f"Structure filter does not support excludes query for {self.value}")
 
+        elif self.type == StructureFilterComponentType.OPERATOR_TYPE:
+            if not structure.create_operator:
+                return False
+            match self.value:
+                case "binary":
+                    first_val = structure.structure.component_defs[0]
+                    last_val = structure.structure.component_defs[-1]
+                    if first_val.component_type != StructureComponentType.Variable or last_val.component_type != StructureComponentType.Variable:
+                        return False
+
+                    first_is_expr = structure.structure.component_specs[first_val.value].base == ComponentType.EXPRESSION
+                    last_is_expr = structure.structure.component_specs[last_val.value].base == ComponentType.EXPRESSION
+                    return first_is_expr and last_is_expr
+                case "unary_right":
+                    first_val = structure.structure.component_defs[0]
+                    if first_val.component_type == StructureComponentType.Variable:
+                        if structure.structure.component_specs[first_val.value].base == ComponentType.EXPRESSION:
+                            return False
+
+                    last_val = structure.structure.component_defs[-1]
+                    if last_val.component_type != StructureComponentType.Variable:
+                        return False
+                    return structure.structure.component_specs[last_val.value].base == ComponentType.EXPRESSION
+                case "unary_left":
+                    last_val = structure.structure.component_defs[-1]
+                    if last_val.component_type == StructureComponentType.Variable:
+                        if structure.structure.component_specs[last_val.value].base == ComponentType.EXPRESSION:
+                            return False
+
+                    first_val = structure.structure.component_defs[0]
+                    if first_val.component_type != StructureComponentType.Variable:
+                        return False
+                    return structure.structure.component_specs[first_val.value].base == ComponentType.EXPRESSION
+
+                case "internal":
+                    first_val = structure.structure.component_defs[0]
+                    last_val = structure.structure.component_defs[-1]
+                    if first_val.component_type == StructureComponentType.Variable:
+                        if structure.structure.component_specs[first_val.value].base == ComponentType.EXPRESSION:
+                            return False
+                    if last_val.component_type == StructureComponentType.Variable:
+                        if structure.structure.component_specs[last_val.value].base == ComponentType.EXPRESSION:
+                            return False
+                    return True
+
+                case _:
+                    raise RuntimeError(f"Structure filter does not support operator type query for {self.value}")
+
 
 @dataclass()
 class StructureFilter:
@@ -277,9 +325,9 @@ class StructureFilter:
         if self.allow_expressions and len(self.filters) == 0:
             return False
         for f in self.filters:
-            if not f.matches(structure):
-                return False
-        return True
+            if f.matches(structure):
+                return True
+        return False
 
 
 #### TYPES ####
@@ -351,56 +399,6 @@ class OperatorType(Enum):
     INTERNAL = 4
     '''Internal operator that does not expose any expressions on the right or left, such as parentheses.'''
 
-
-@dataclass
-class Operator:
-    name: str
-    '''The name of the operator. Is only used for bookkeeping, not for parsing.'''
-    precedence: int
-    '''The precedence of the operator. Lower precedence hugs values more closely.'''
-    structure: Structure
-    '''The structure of the operator. Contains the components and their definitions.'''
-    overloads: list[OperatorOverload]
-    '''The overloads of the operator. Contains the return type and the types of the variables 
-    for each combination of types'''
-    trigger: str
-    '''The trigger of the operator. Once found, the operator is created and structure parsed'''
-    associativity: Associativity
-    '''The associativity of the operator. Determines how the operator is parsed in the absence of parentheses'''
-    operator_type: OperatorType = OperatorType.UNKNOWN
-    '''The type of the operator (binary, unary, internal). Is determined by the structure of the operator.'''
-    num_variables: int = 0
-
-    def __init__(self, name: str, precedence: int, structure: Structure, overloads: list[OperatorOverload],
-                 trigger: str, associativity: Associativity):
-        self.name = name
-        self.precedence = precedence
-        self.structure = structure
-        self.overloads = overloads
-        self.trigger = trigger
-        self.associativity = associativity
-        self.operator_type = OperatorType.UNKNOWN
-        self.num_variables = 0
-
-    def calc_num_variables(self):
-        for i in self.structure.component_defs:
-            if i.component_type == StructureComponentType.Variable:
-                self.num_variables += 1
-
-
-    def overload_matches(self, overload: OperatorOverload):
-        """Checks if an overload configuration matches the operator structure"""
-        # Get all variable names from structure components
-        structure_vars = set()
-        for comp in self.structure.component_specs.values():
-            if comp.base == ComponentType.OPERATOR_VALUE:
-                structure_vars.add(comp.name)
-
-        overload_vars = set(overload.variables.keys())
-
-        # Check if all variables in overload exist in structure
-        return structure_vars == overload_vars
-
 #### OTHER: EXPRESSION SEPARATORS ####
 
 @dataclass
@@ -415,8 +413,6 @@ class Spec:
     structured_objects: dict[str, StructuredObject]
     '''{StructuredObject name: StructuredObject}'''
     initializer_formats: dict[str, InitializationSpec]
-    '''{format name ($...) or value keyword: InitializationSpec}'''
-    operators: dict[str, Operator]
     '''{Operator name (NOT trigger): Operator}'''
     expression_separators: dict[str, ExpressionSeparator]
     

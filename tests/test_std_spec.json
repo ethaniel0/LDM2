@@ -304,5 +304,57 @@
     "type": "operator_overload",
     "name": "+",
     "left": "float", "right": "float", "return": "float"
+  },
+
+  {
+    "type": "structure",
+    "name": "<",
+    "components": [
+          {"base": "expression", "name": "left"},
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left", "right"]
+    }
+
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "int", "right": "int", "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "int", "right": "float", "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "float", "right": "int", "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": "<",
+    "left": "float", "right": "float", "return": "bool"
+  },
+
+
+  {
+    "type": "structure",
+    "name": "=",
+    "components": [
+          {"base": "expression", "name": "left"},
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left", "right"]
+    }
+
+  },
+  {
+    "type": "operator_overload",
+    "name": "=",
+    "left": "$typename<T>", "right": "$typename<T>", "return": "$typename<T>"
   }
 ]

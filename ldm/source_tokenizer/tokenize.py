@@ -1,12 +1,11 @@
 from .tokenizer_types import Token, TokenType
-from ldm.lib_config2.parsing_types import PrimitiveType, Operator, ExpressionSeparator
+from ldm.lib_config2.parsing_types import PrimitiveType, ExpressionSeparator
 from dataclasses import dataclass
 
 
 @dataclass
 class TokenizerItems:
     primitive_types: dict[str, PrimitiveType]
-    operators: dict[str, Operator]
     expression_separators: dict[str, ExpressionSeparator]
 
 
@@ -24,6 +23,7 @@ class Tokenizer:
         self.running_str = ""
 
         self.index = 0
+        self.starting_index = 0
         self.line = 1
 
         self.NUMBERS = "1234567890"
@@ -32,16 +32,9 @@ class Tokenizer:
 
         self.char_ind = 0
 
-    def __add_bracket(self, c: str):
-        match c:
-            case '{':
-                self.tokens.append(Token(TokenType.LBRACKET, c, self.line))
-            case '}':
-                self.tokens.append(Token(TokenType.RBRACKET, c, self.line))
-
     def __handle_str(self, c: str):
         if c == "\"":
-            self.tokens.append(Token(TokenType.String, self.running_str, self.line))
+            self.tokens.append(Token(TokenType.String, self.running_str, self.line, self.starting_index))
             self.__reset_state()
         elif c == '\n' or c == '\0':
             raise ValueError(f"Unexpected newline in string at line {self.line - 1}")
@@ -60,20 +53,15 @@ class Tokenizer:
             raise ValueError(f"Unexpected character in number at line {self.line - 1}")
         else:
             num_type = TokenType.Float if self.in_float else TokenType.Integer
-            self.tokens.append(Token(num_type, self.running_str, self.line))
+            self.tokens.append(Token(num_type, self.running_str, self.line, self.starting_index))
             self.__reset_state()
             self.char_ind -= 1
-            self.eat(c)
+            self.eat(c, count=False)
 
     def __get_identifier_type(self):
         # check is primitive type
         if self.running_str in self.items.primitive_types:
             return TokenType.PrimitiveType
-
-        # check is operator
-        is_operator = any(o.trigger == self.running_str for o in self.items.operators.values())
-        if is_operator:
-            return TokenType.Operator
 
         # check is value keyword
         for pt in self.items.primitive_types.values():
@@ -90,37 +78,35 @@ class Tokenizer:
 
         token_type = self.__get_identifier_type()
 
-        self.tokens.append(Token(token_type, self.running_str, self.line))
+        self.tokens.append(Token(token_type, self.running_str, self.line, self.starting_index))
         self.__reset_state()
         self.char_ind -= 1
-        self.eat(c)
+        self.eat(c, count=False)
 
     def __handle_operator(self, c: str):
         if c != '\0' and c not in self.ALPHABET and c not in self.NUMBERS and c not in self.WHITESPACE:
-            has_possible_operator = any(o.trigger == self.running_str + c for o in self.items.operators.values())
-            if has_possible_operator:
-                self.running_str += c
-            else:
-                self.tokens.append(Token(TokenType.Operator, self.running_str, self.line))
-                self.__reset_state()
-                self.char_ind -= 1
-                self.eat(c)
-        else:
-            self.tokens.append(Token(TokenType.Operator, self.running_str, self.line))
+            self.tokens.append(Token(TokenType.Operator, self.running_str, self.line, self.starting_index))
             self.__reset_state()
             self.char_ind -= 1
-            self.eat(c)
+            self.eat(c, count=False)
+        else:
+            self.tokens.append(Token(TokenType.Operator, self.running_str, self.line, self.starting_index))
+            self.__reset_state()
+            self.char_ind -= 1
+            self.eat(c, count=False)
 
-    def eat(self, c: str):
-        self.char_ind += 1
-        if c == "\n":
-            self.line += 1
-            self.index = 0
-        self.index += 1
+    def eat(self, c: str, count: bool=True):
+        if count:
+            self.char_ind += 1
+            if c == "\n":
+                self.line += 1
+                self.index = 0
+            self.index += 1
 
         if len(self.running_str) == 0:
+            self.starting_index = self.index
             if c in self.items.expression_separators:
-                self.tokens.append(Token(TokenType.ExpressionSeparator, c, self.line))
+                self.tokens.append(Token(TokenType.ExpressionSeparator, c, self.line, self.starting_index))
                 return
             
             if c in self.WHITESPACE:
@@ -171,7 +157,7 @@ class Tokenizer:
     def finish(self):
         if self.in_str:
             raise ValueError(f"Unterminated string at line {self.line - 1}")
-        self.eat('\0')
+        self.eat('\0', count=False)
         return self.tokens
 
     def __reset_state(self):

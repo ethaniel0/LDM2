@@ -122,16 +122,6 @@ def build_init_formats_from_type_tree(type_tree_roots: list[TypeTreeNode]) -> di
     return init_formats
 
 
-def parse_operator(arg: dict[str, Any]) -> Operator:
-    name = arg['name']
-    components = {}
-    for item in arg['components']:
-        s = StructureSpecComponent(ComponentType.OPERATOR_VALUE, item['name'], {})
-        components[item['name']] = s
-    structure = Structure(components, [])
-    return Operator(name, 0, structure, [], "", Associativity.NONE)
-
-
 def parse_operator_overload(arg: dict[str, Any]) -> OperatorOverload:
     name: str = arg['name']
     return_type: str = arg['return']
@@ -237,7 +227,6 @@ def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
 def parse_spec(arg: list[dict[str, Any]]) -> Spec:
     primitive_types: dict[str, PrimitiveType] = {}
     structured_objects: dict[str, StructuredObject] = {}
-    operators: dict[str, Operator] = {}
     operator_overloads: list[OperatorOverload] = []
     expression_separators: dict[str, ExpressionSeparator] = {}
 
@@ -258,9 +247,6 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
                 if name in structured_objects:
                     raise ValueError(f"Object {name} already exists")
                 structured_objects[name] = parse_general_structure(item)
-                
-            case 'operator':
-                operators[item['name']] = parse_operator(item)
             
             case 'operator_overload':
                 operator_overloads.append(parse_operator_overload(item))
@@ -296,7 +282,6 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
         primitive_types=primitive_types,
         structured_objects=structured_objects,
         initializer_formats=init_formats,
-        operators=operators,
         expression_separators=expression_separators,
     )
 

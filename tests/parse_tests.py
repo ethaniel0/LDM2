@@ -88,12 +88,10 @@ class MyTestCase(unittest.TestCase):
         assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'x'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
+        expr = mv.components['expr']
         assert isinstance(expr, ast_pt.ValueToken)
         assert expr.value.value == '5'
-        var_expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert var_expr.value.value == '5'
-        assert var_expr.var_type.name == 'int'
+        assert expr.var_type.name == 'int'
 
     def test_make_variable_with_simple_operator(self):
         source_code = "int x = 5 + 4"
@@ -107,15 +105,15 @@ class MyTestCase(unittest.TestCase):
         assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'x'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '+'
-        assert expr.result_type.name == 'int'
-        assert len(expr.operands) == 2
-        assert isinstance(expr.operands[0], ast_pt.ValueToken)
-        assert isinstance(expr.operands[1], ast_pt.ValueToken)
-        assert expr.operands[0].value.value == '5'
-        assert expr.operands[1].value.value == '4'
+        expr = mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '+'
+        assert expr.operator_fields.result_type.name == 'int'
+        assert len(expr.components) == 2
+        assert isinstance(expr.components['left'], ast_pt.ValueToken)
+        assert isinstance(expr.components['right'], ast_pt.ValueToken)
+        assert expr.components['left'].value.value == '5'
+        assert expr.components['right'].value.value == '4'
 
     def test_make_variable_with_multiple_operator(self):
         source_code = "int x = 5 + 4 * 6.5"
@@ -128,23 +126,23 @@ class MyTestCase(unittest.TestCase):
         assert mv.so.name == 'make_variable_standard'
         assert mv.components['type'].value.name == 'int'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '+'
-        assert expr.result_type.name == 'float'
-        assert len(expr.operands) == 2
-        assert isinstance(expr.operands[0], ast_pt.ValueToken)
-        assert isinstance(expr.operands[1], ast_pt.OperatorInstance)
-        assert expr.operands[0].value.value == '5'
-        assert expr.result_type.name == 'float'
+        expr = mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '+'
+        assert expr.operator_fields.result_type.name == 'float'
+        assert len(expr.components) == 2
+        assert isinstance(expr.components['left'], ast_pt.ValueToken)
+        assert isinstance(expr.components['right'], ast_pt.StructuredObjectInstance)
+        assert expr.components['left'].value.value == '5'
+        assert expr.operator_fields.result_type.name == 'float'
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[1]
-        assert inner_op.operator.name == '*'
-        assert len(inner_op.operands) == 2
-        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
-        assert inner_op.operands[0].value.value == '4'
-        assert inner_op.operands[1].value.value == '6.5'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['right']
+        assert inner_op.so.name == '*'
+        assert len(inner_op.components) == 2
+        assert isinstance(inner_op.components['left'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['right'], ast_pt.ValueToken)
+        assert inner_op.components['left'].value.value == '4'
+        assert inner_op.components['right'].value.value == '6.5'
 
         source_code = "int x = 5 * 4 + 6"
         tokens = TOKENIZER.tokenize(source_code)
@@ -156,21 +154,21 @@ class MyTestCase(unittest.TestCase):
         assert mv.so.name == 'make_variable_standard'
         assert mv.components['type'].value.name == 'int'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '+'
-        assert len(expr.operands) == 2
-        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
-        assert isinstance(expr.operands[1], ast_pt.ValueToken)
-        assert expr.operands[1].value.value == '6'
+        expr = mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '+'
+        assert len(expr.components) == 2
+        assert isinstance(expr.components['left'], ast_pt.StructuredObjectInstance)
+        assert isinstance(expr.components['right'], ast_pt.ValueToken)
+        assert expr.components['right'].value.value == '6'
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[0]
-        assert inner_op.operator.name == '*'
-        assert len(inner_op.operands) == 2
-        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
-        assert inner_op.operands[0].value.value == '5'
-        assert inner_op.operands[1].value.value == '4'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['left']
+        assert inner_op.so.name == '*'
+        assert len(inner_op.components) == 2
+        assert isinstance(inner_op.components['left'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['right'], ast_pt.ValueToken)
+        assert inner_op.components['left'].value.value == '5'
+        assert inner_op.components['right'].value.value == '4'
 
     def test_make_variable_with_two_same_precedence_operators_ltr(self):
         source_code = "int x = 5 + 4 + 6"
@@ -182,21 +180,21 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'make_variable_standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '+'
-        assert len(expr.operands) == 2
-        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
-        assert isinstance(expr.operands[1], ast_pt.ValueToken)
-        assert expr.operands[1].value.value == '6'
+        expr = mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '+'
+        assert len(expr.components) == 2
+        assert isinstance(expr.components['left'], ast_pt.StructuredObjectInstance)
+        assert isinstance(expr.components['right'], ast_pt.ValueToken)
+        assert expr.components['right'].value.value == '6'
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[0]
-        assert inner_op.operator.name == '+'
-        assert len(inner_op.operands) == 2
-        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
-        assert inner_op.operands[0].value.value == '5'
-        assert inner_op.operands[1].value.value == '4'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['left']
+        assert inner_op.so.name == '+'
+        assert len(inner_op.components) == 2
+        assert isinstance(inner_op.components['left'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['right'], ast_pt.ValueToken)
+        assert inner_op.components['left'].value.value == '5'
+        assert inner_op.components['right'].value.value == '4'
 
     def test_make_variable_with_two_same_precedence_operators_rtl(self):
         source_code = "int x = 5 ++ 4 ++ 6"
@@ -208,21 +206,21 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'make_variable_standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '++'
-        assert len(expr.operands) == 2
-        assert isinstance(expr.operands[0], ast_pt.ValueToken)
-        assert isinstance(expr.operands[1], ast_pt.OperatorInstance)
-        assert expr.operands[0].value.value == '5'
+        expr: ast_pt.ValueToken = mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '++'
+        assert len(expr.components) == 2
+        assert isinstance(expr.components['left'], ast_pt.ValueToken)
+        assert isinstance(expr.components['right'], ast_pt.StructuredObjectInstance)
+        assert expr.components['left'].value.value == '5'
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[1]
-        assert inner_op.operator.name == '++'
-        assert len(inner_op.operands) == 2
-        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
-        assert inner_op.operands[0].value.value == '4'
-        assert inner_op.operands[1].value.value == '6'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['right']
+        assert inner_op.so.name == '++'
+        assert len(inner_op.components) == 2
+        assert isinstance(inner_op.components['left'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['right'], ast_pt.ValueToken)
+        assert inner_op.components['left'].value.value == '4'
+        assert inner_op.components['right'].value.value == '6'
 
     def test_make_variable_with_minus_and_negation(self):
         source_code = "int x = 5 - -8"
@@ -234,19 +232,19 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'make_variable_standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '-'
-        assert len(expr.operands) == 2
-        assert isinstance(expr.operands[0], ast_pt.ValueToken)
-        assert isinstance(expr.operands[1], ast_pt.OperatorInstance)
-        assert expr.operands[0].value.value == '5'
+        expr = mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '-'
+        assert len(expr.components) == 2
+        assert isinstance(expr.components['left'], ast_pt.ValueToken)
+        assert isinstance(expr.components['right'], ast_pt.StructuredObjectInstance)
+        assert expr.components['left'].value.value == '5'
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[1]
-        assert inner_op.operator.name == '- neg'
-        assert len(inner_op.operands) == 1
-        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
-        assert inner_op.operands[0].value.value == '8'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['right']
+        assert inner_op.so.name == '- neg'
+        assert len(inner_op.components) == 1
+        assert isinstance(inner_op.components['right'], ast_pt.ValueToken)
+        assert inner_op.components['right'].value.value == '8'
 
     def test_make_variable_with_ternary_operator(self):
         source_code = "int x = 5 > 3 ? 1 : 0"
@@ -258,36 +256,35 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'make_variable_standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '?:'
-        assert expr.result_type.name == 'int'
-        assert len(expr.operands) == 3
-        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
-        assert isinstance(expr.operands[1], ast_pt.ValueToken)
-        assert isinstance(expr.operands[2], ast_pt.ValueToken)
-        assert expr.operands[1].value.value == '1'
-        assert expr.operands[2].value.value == '0'
+        expr= mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '?:'
+        assert expr.operator_fields.result_type.name == 'int'
+        assert len(expr.components) == 3
+        assert isinstance(expr.components['condition'], ast_pt.StructuredObjectInstance)
+        assert isinstance(expr.components['on_true'], ast_pt.ValueToken)
+        assert isinstance(expr.components['on_false'], ast_pt.ValueToken)
+        assert expr.components['on_true'].value.value == '1'
+        assert expr.components['on_false'].value.value == '0'
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[0]
-        assert inner_op.operator.name == '>'
-        assert inner_op.result_type.name == 'bool'
-        assert len(inner_op.operands) == 2
-        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
-        assert inner_op.operands[0].value.value == '5'
-        assert inner_op.operands[1].value.value == '3'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['condition']
+        assert inner_op.so.name == '>'
+        assert inner_op.operator_fields.result_type.name == 'bool'
+        assert len(inner_op.components) == 2
+        assert isinstance(inner_op.components['left'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['right'], ast_pt.ValueToken)
+        assert inner_op.components['left'].value.value == '5'
+        assert inner_op.components['right'].value.value == '3'
 
     def test_make_variable_with_weird_plus_operator(self):
-        weird_op = pt.Operator(
+        weird_op = pt.StructuredObject(
             name="weird +",
-            precedence=16,
             structure=pt.Structure(
                 component_specs={
-                    "x1": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x1", other={}),
-                    "x2": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x2", other={}),
-                    "x3": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x3", other={}),
-                    "x4": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="x4", other={})
+                    "x1": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION, name="x1", other={}),
+                    "x2": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION, name="x2", other={}),
+                    "x3": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION, name="x3", other={}),
+                    "x4": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION, name="x4", other={})
                 },
                 component_defs=[
                     pt.StructureComponent(
@@ -324,57 +321,57 @@ class MyTestCase(unittest.TestCase):
                     )
                 ]
             ),
-            overloads=[
-                pt.OperatorOverload(
-                    name="weird +",
-                    return_type=pt.TypeSpec('int', 0, []),
-                    variables={
-                        "x1": pt.TypeSpec('int', 0, []),
-                        "x2": pt.TypeSpec('int', 0, []),
-                        "x3": pt.TypeSpec('int', 0, []),
-                        "x4": pt.TypeSpec('int', 0, [])
-                    }
-                ),
-            ],
-            trigger="+",
-            associativity=pt.Associativity.LEFT_TO_RIGHT
+            create_operator=pt.CreateOperator(
+                fields=["x1", "x2", "x3", "x4"],
+                precedence=16,
+                associativity=pt.Associativity.LEFT_TO_RIGHT,
+                overloads=[
+                    pt.OperatorOverload(
+                        name="weird +",
+                        return_type=pt.TypeSpec('int', 0, []),
+                        variables={
+                            "x1": pt.TypeSpec('int', 0, []),
+                            "x2": pt.TypeSpec('int', 0, []),
+                            "x3": pt.TypeSpec('int', 0, []),
+                            "x4": pt.TypeSpec('int', 0, [])
+                        }
+                    ),
+                ]
+            )
         )
 
-        weird_op.operator_type = pt.OperatorType.UNARY_LEFT
-        weird_op.calc_num_variables()
-
-        SPEC.operators['weird +'] = weird_op
+        SPEC.structured_objects['weird +'] = weird_op
 
         source_code = "int x = 5 + 2 ? 3 @ 4 $ + 5"
         tokens = TOKENIZER.tokenize(source_code)
         ast, _ = parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
 
-        del SPEC.operators['weird +']
+        del SPEC.structured_objects['weird +']
 
         assert len(ast) == 1
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'make_variable_standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '+'
-        assert len(expr.operands) == 2
+        expr: ast_pt.ValueToken = mv.components['expr']
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '+'
+        assert len(expr.components) == 2
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[0]
-        assert inner_op.operator.name == 'weird +'
-        assert inner_op.result_type.name == 'int'
-        assert len(inner_op.operands) == 4
-        assert isinstance(inner_op.operands[0], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[1], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[2], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[3], ast_pt.ValueToken)
-        assert inner_op.operands[0].value.value == '5'
-        assert inner_op.operands[1].value.value == '2'
-        assert inner_op.operands[2].value.value == '3'
-        assert inner_op.operands[3].value.value == '4'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['left']
+        assert inner_op.so.name == 'weird +'
+        assert inner_op.operator_fields.result_type.name == 'int'
+        assert len(inner_op.components) == 4
+        assert isinstance(inner_op.components['x1'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['x2'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['x3'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['x3'], ast_pt.ValueToken)
+        assert inner_op.components['x1'].value.value == '5'
+        assert inner_op.components['x2'].value.value == '2'
+        assert inner_op.components['x3'].value.value == '3'
+        assert inner_op.components['x4'].value.value == '4'
 
-        assert expr.operands[1].value.value == '5'
+        assert expr.components['right'].value.value == '5'
 
     def test_with_parentheses(self):
         source_code = "int x = (5 + 4) * 6"
@@ -386,24 +383,24 @@ class MyTestCase(unittest.TestCase):
         mv: ast_pt.StructuredObjectInstance = ast[0]
         assert mv.so.name == 'make_variable_standard'
 
-        expr: ast_pt.ValueToken = mv.components['expr'].value
+        expr: ast_pt.ValueToken = mv.components['expr']
 
-        assert isinstance(expr, ast_pt.OperatorInstance)
-        assert expr.operator.name == '*'
-        assert len(expr.operands) == 2
-        assert isinstance(expr.operands[0], ast_pt.OperatorInstance)
-        assert isinstance(expr.operands[1], ast_pt.ValueToken)
+        assert isinstance(expr, ast_pt.StructuredObjectInstance)
+        assert expr.so.name == '*'
+        assert len(expr.components) == 2
+        assert isinstance(expr.components['left'], ast_pt.StructuredObjectInstance)
+        assert isinstance(expr.components['right'], ast_pt.ValueToken)
 
-        inner_op: ast_pt.OperatorInstance = expr.operands[0]
-        assert inner_op.operator.name == '()'
-        assert len(inner_op.operands) == 1
-        assert isinstance(inner_op.operands[0], ast_pt.OperatorInstance)
-        assert inner_op.operands[0].operator.name == '+'
-        assert len(inner_op.operands[0].operands) == 2
-        assert isinstance(inner_op.operands[0].operands[0], ast_pt.ValueToken)
-        assert isinstance(inner_op.operands[0].operands[1], ast_pt.ValueToken)
-        assert inner_op.operands[0].operands[0].value.value == '5'
-        assert inner_op.operands[0].operands[1].value.value == '4'
+        inner_op: ast_pt.StructuredObjectInstance = expr.components['left']
+        assert inner_op.so.name == '()'
+        assert len(inner_op.components) == 1
+        assert isinstance(inner_op.components['inside'], ast_pt.StructuredObjectInstance)
+        assert inner_op.components['inside'].so.name == '+'
+        assert len(inner_op.components['inside'].components) == 2
+        assert isinstance(inner_op.components['inside'].components['left'], ast_pt.ValueToken)
+        assert isinstance(inner_op.components['inside'].components['right'], ast_pt.ValueToken)
+        assert inner_op.components['inside'].components['left'].value.value == '5'
+        assert inner_op.components['inside'].components['right'].value.value == '4'
 
     def test_multiline(self):
         source = '''
@@ -429,16 +426,16 @@ class MyTestCase(unittest.TestCase):
         assert mv1.components['varname'].value == 'x'
         assert mv2.components['varname'].value == 'y'
 
-        assert mv1.components['expr'].value.operator.name == '+'
-        assert mv2.components['expr'].value.operator.name == '*'
+        assert mv1.components['expr'].so.name == '+'
+        assert mv2.components['expr'].so.name == '*'
 
-        assert mv1.components['expr'].value.result_type.name == 'float'
-        assert mv1.components['expr'].value.operands[0].value.value == '5'
-        assert mv1.components['expr'].value.operands[1].value.value == '4.5'
+        assert mv1.components['expr'].operator_fields.result_type.name == 'float'
+        assert mv1.components['expr'].components['left'].value.value == '5'
+        assert mv1.components['expr'].components['right'].value.value == '4.5'
 
-        assert mv2.components['expr'].value.result_type.name == 'int'
-        assert mv2.components['expr'].value.operands[0].value.value == '6'
-        assert mv2.components['expr'].value.operands[1].value.value == '3'
+        assert mv2.components['expr'].operator_fields.result_type.name == 'int'
+        assert mv2.components['expr'].components['left'].value.value == '6'
+        assert mv2.components['expr'].components['right'].value.value == '3'
 
     def test_multiline_fails_when_no_expression_separators(self):
         source = '''
@@ -528,12 +525,12 @@ class MyTestCase(unittest.TestCase):
         assert mv.so.name == 'make_variable_standard'
         assert mv.components['type'].value.name == 'int'
         assert mv.components['varname'].value == 'p'
-        assert mv.components['expr'].value.value.value == '14'
+        assert mv.components['expr'].value.value == '14'
 
         if_inst: ast_pt.StructuredObjectInstance = ast[1]
         assert if_inst.so.name == 'if'
         assert len(if_inst.components) == 2
-        assert isinstance(if_inst.components['condition'].value, ast_pt.OperatorInstance)
+        assert isinstance(if_inst.components['condition'], ast_pt.StructuredObjectInstance)
         assert if_inst.components['body'].item_type == ast_pt.ComponentType.STRUCTURE
         assert isinstance(if_inst.components['body'].value, StructuredObjectInstance)
         if_body: ast_pt.SOInstanceItem = if_inst.components['body'].value.components['body']
@@ -554,14 +551,14 @@ class MyTestCase(unittest.TestCase):
         assert len(func_body.value) == 2
         assert isinstance(func_body.value[0], ast_pt.StructuredObjectInstance)
         assert func_body.value[0].so.name == 'make_variable_standard'
-        assert isinstance(func_body.value[1], ast_pt.OperatorInstance)
+        assert isinstance(func_body.value[1], ast_pt.StructuredObjectInstance)
 
         assert len(func.components['arguments'].value) == 2
         arguments = func.components['arguments'].value
-        assert arguments[0]['type'].value.name == 'int'
-        assert arguments[0]['varname'].value == 'a'
-        assert arguments[1]['type'].value.name == 'bool'
-        assert arguments[1]['varname'].value == 'b'
+        assert arguments[0].components['type'].value.name == 'int'
+        assert arguments[0].components['varname'].value == 'a'
+        assert arguments[1].components['type'].value.name == 'bool'
+        assert arguments[1].components['varname'].value == 'b'
 
     def test_parsing(self):
         spec = load_setup()

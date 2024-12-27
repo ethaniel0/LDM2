@@ -75,13 +75,16 @@ MAKE_VARIABLE = pt.StructuredObject(
     dependent=False
 )
 
-PLUS_OPERATOR = pt.Operator(
+PLUS_OPERATOR = pt.StructuredObject(
     name="+",
-    precedence=6,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
-            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="left",
+                                                  other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="right",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -98,56 +101,63 @@ PLUS_OPERATOR = pt.Operator(
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name="+",
-            return_type=pt.TypeSpec("int", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="+",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="+",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="+",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        )
-    ],
-    trigger="+",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["left", "right"],
+        precedence=6,
+        associativity=pt.Associativity.LEFT_TO_RIGHT,
+        overloads=[
+            pt.OperatorOverload(
+                name="+",
+                return_type=pt.TypeSpec("int", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="+",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="+",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="+",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            )
+        ]
+    ),
+    dependent=False
 )
 
-PLUS_OPERATOR.operator_type = pt.OperatorType.BINARY
-PLUS_OPERATOR.calc_num_variables()
 
 
-# This is the exact same as the + operator, but it has left-to-right associativity
-PLUS_PLUS_OPERATOR = pt.Operator(
+# This is the exact same as the + operator, but it has right-to-right associativity
+PLUS_PLUS_OPERATOR = pt.StructuredObject(
     name="++",
-    precedence=6,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
-            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="left",
+                                                  other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="right",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -164,53 +174,60 @@ PLUS_PLUS_OPERATOR = pt.Operator(
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name="++",
-            return_type=pt.TypeSpec("int", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="++",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="++",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="++",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        )
-    ],
-    trigger="+",
-    associativity=pt.Associativity.RIGHT_TO_LEFT
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["left", "right"],
+        precedence=6,
+        associativity=pt.Associativity.RIGHT_TO_LEFT,
+        overloads=[
+            pt.OperatorOverload(
+                name="++",
+                return_type=pt.TypeSpec("int", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="++",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="++",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="++",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            )
+        ]
+    ),
+    dependent=False
 )
-PLUS_PLUS_OPERATOR.operator_type = pt.OperatorType.BINARY
-PLUS_PLUS_OPERATOR.calc_num_variables()
 
-MINUS_OPERATOR = pt.Operator(
+MINUS_OPERATOR = pt.StructuredObject(
     name="-",
-    precedence=6,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
-            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="left",
+                                                  other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="right",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -227,53 +244,57 @@ MINUS_OPERATOR = pt.Operator(
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name="-",
-            return_type=pt.TypeSpec("int", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="-",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="-",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="-",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        )
-    ],
-    trigger="-",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["left", "right"],
+        precedence=6,
+        associativity=pt.Associativity.LEFT_TO_RIGHT,
+        overloads=[
+            pt.OperatorOverload(
+                name="-",
+                return_type=pt.TypeSpec("int", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="-",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="-",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="-",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            )
+        ]
+    ),
+    dependent=False
 )
 
-MINUS_OPERATOR.operator_type = pt.OperatorType.BINARY
-MINUS_OPERATOR.calc_num_variables()
-
-NEG_OPERATOR = pt.Operator(
+NEG_OPERATOR = pt.StructuredObject(
     name="- neg",
-    precedence=3,
     structure=pt.Structure(
         component_specs={
-            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="right",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -286,33 +307,42 @@ NEG_OPERATOR = pt.Operator(
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name="-",
-            return_type=pt.TypeSpec("int", 0, []),
-            variables={"right": pt.TypeSpec("int", 0, [])}
-        ),
-        pt.OperatorOverload(
-            name="-",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={"right": pt.TypeSpec("float", 0, [])}
-        )
-    ],
-    trigger="-",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["right"],
+        precedence=3,
+        associativity=pt.Associativity.LEFT_TO_RIGHT,
+        overloads=[
+            pt.OperatorOverload(
+                name="- neg",
+                return_type=pt.TypeSpec("int", 0, []),
+                variables={
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="- neg",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            )
+        ]
+    ),
+    dependent=False
 )
 
-NEG_OPERATOR.operator_type = pt.OperatorType.UNARY_RIGHT
-NEG_OPERATOR.calc_num_variables()
-
-
-TIMES_OPERATOR = pt.Operator(
+TIMES_OPERATOR = pt.StructuredObject(
     name="*",
-    precedence=5,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
-            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="left",
+                                                  other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="right",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
@@ -329,61 +359,68 @@ TIMES_OPERATOR = pt.Operator(
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name="*",
-            return_type=pt.TypeSpec("int", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="*",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="*",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name="*",
-            return_type=pt.TypeSpec("float", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        )
-    ],
-    trigger="*",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["left", "right"],
+        precedence=5,
+        associativity=pt.Associativity.LEFT_TO_RIGHT,
+        overloads=[
+            pt.OperatorOverload(
+                name="*",
+                return_type=pt.TypeSpec("int", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="*",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="*",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="*",
+                return_type=pt.TypeSpec("float", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            )
+        ]
+    ),
+    dependent=False
 )
 
-TIMES_OPERATOR.operator_type = pt.OperatorType.BINARY
-TIMES_OPERATOR.calc_num_variables()
-
-
-TERNARY_OPERATOR = pt.Operator(
+TERNARY_OPERATOR = pt.StructuredObject(
     name="?:",
-    precedence=16,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
-            "middle": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="middle", other={}),
-            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+            "condition": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="condition",
+                                                  other={}),
+            "on_true": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="on_true",
+                                                  other={}),
+            "on_false": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="on_false",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.Variable,
-                value="left"
+                value="condition"
             ),
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.String,
@@ -391,7 +428,7 @@ TERNARY_OPERATOR = pt.Operator(
             ),
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.Variable,
-                value="middle"
+                value="on_true"
             ),
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.String,
@@ -399,43 +436,47 @@ TERNARY_OPERATOR = pt.Operator(
             ),
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.Variable,
-                value="right"
+                value="on_false"
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name="?:",
-            return_type=pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
-            variables={
-                "left": pt.TypeSpec('bool', 0, []),
-                "middle": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
-                "right": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])])
-            }
-        )
-    ],
-    trigger="?",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["condition", "on_true", "on_false"],
+        precedence=16,
+        associativity=pt.Associativity.RIGHT_TO_LEFT,
+        overloads=[
+            pt.OperatorOverload(
+                name="?:",
+                return_type=pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
+                variables={
+                    "condition": pt.TypeSpec('bool', 0, []),
+                    "on_true": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
+                    "on_false": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])])
+                }
+            )
+        ],
+    ),
+    dependent=False
 )
 
-TERNARY_OPERATOR.operator_type = pt.OperatorType.BINARY
-TERNARY_OPERATOR.calc_num_variables()
-
-
-GT_OPERATOR = pt.Operator(
+GT_OPERATOR = pt.StructuredObject(
     name=">",
-    precedence=9,
     structure=pt.Structure(
         component_specs={
-            "left": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="left", other={}),
-            "right": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="right", other={})
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="left",
+                                                  other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="right",
+                                              other={})
         },
         component_defs=[
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.Variable,
                 value="left"
             ),
-
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.String,
                 value=">"
@@ -446,61 +487,133 @@ GT_OPERATOR = pt.Operator(
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name=">",
-            return_type=pt.TypeSpec("bool", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name=">",
-            return_type=pt.TypeSpec("bool", 0, []),
-            variables={
-                "left": pt.TypeSpec("int", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name=">",
-            return_type=pt.TypeSpec("bool", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("int", 0, [])
-            }
-        ),
-        pt.OperatorOverload(
-            name=">",
-            return_type=pt.TypeSpec("bool", 0, []),
-            variables={
-                "left": pt.TypeSpec("float", 0, []),
-                "right": pt.TypeSpec("float", 0, [])
-            }
-        )
-    ],
-    trigger=">",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["left", "right"],
+        precedence=9,
+        associativity=pt.Associativity.LEFT_TO_RIGHT,
+        overloads=[
+            pt.OperatorOverload(
+                name=">",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name=">",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name=">",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name=">",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            )
+        ]
+    ),
+    dependent=False
 )
 
-GT_OPERATOR.operator_type = pt.OperatorType.BINARY
-GT_OPERATOR.calc_num_variables()
-
-
-PARENTHESES_OPERATOR = pt.Operator(
-    name="()",
-    precedence=0,
+LT_OPERATOR = pt.StructuredObject(
+    name="<",
     structure=pt.Structure(
         component_specs={
-            "inside": pt.StructureSpecComponent(base=pt.ComponentType.OPERATOR_VALUE, name="inside", other={}),
+            "left": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="left",
+                                                  other={}),
+            "right": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                              name="right",
+                                              other={})
+        },
+        component_defs=[
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="left"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.String,
+                value=">"
+            ),
+            pt.StructureComponent(
+                component_type=pt.StructureComponentType.Variable,
+                value="right"
+            )
+        ]
+    ),
+    create_variable=None,
+    create_type=None,
+    create_operator=pt.CreateOperator(
+        fields=["left", "right"],
+        precedence=9,
+        associativity=pt.Associativity.LEFT_TO_RIGHT,
+        overloads=[
+            pt.OperatorOverload(
+                name="<",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="<",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="<",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("float", 0, []),
+                    "right": pt.TypeSpec("int", 0, [])
+                }
+            ),
+            pt.OperatorOverload(
+                name="<",
+                return_type=pt.TypeSpec("bool", 0, []),
+                variables={
+                    "left": pt.TypeSpec("int", 0, []),
+                    "right": pt.TypeSpec("float", 0, [])
+                }
+            )
+        ]
+    ),
+    dependent=False
+)
+
+PARENTHESES_OPERATOR = pt.StructuredObject(
+    name="()",
+    structure=pt.Structure(
+        component_specs={
+            "inside": pt.StructureSpecComponent(base=pt.ComponentType.EXPRESSION,
+                                                  name="inside",
+                                                  other={})
         },
         component_defs=[
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.String,
                 value="("
             ),
-
             pt.StructureComponent(
                 component_type=pt.StructureComponentType.Variable,
                 value="inside"
@@ -511,21 +624,23 @@ PARENTHESES_OPERATOR = pt.Operator(
             )
         ]
     ),
-    overloads=[
-        pt.OperatorOverload(
-            name="()",
-            return_type=pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
-            variables={
-                "inside": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])])
-            }
-        )
-    ],
-    trigger="(",
-    associativity=pt.Associativity.LEFT_TO_RIGHT
+    create_operator=pt.CreateOperator(
+        fields=["inside"],
+        precedence=0,
+        associativity=pt.Associativity.LEFT_TO_RIGHT,
+        overloads=[
+            pt.OperatorOverload(
+                name="()",
+                return_type=pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])]),
+                variables={
+                    "inside": pt.TypeSpec("$typename", 1, [pt.TypeSpec("T", 0, [])])
+                }
+            )
+        ]
+    ),
+    dependent=False
 )
 
-PARENTHESES_OPERATOR.operator_type = pt.OperatorType.INTERNAL
-PARENTHESES_OPERATOR.calc_num_variables()
 
 SEMICOLON = pt.ExpressionSeparator("semicolon", ";")
 
@@ -608,6 +723,15 @@ SPEC = pt.Spec(
         "make_variable_standard": MAKE_VARIABLE,
         "if": IF_KEYWORD,
         "block_main": BLOCK,
+        "+": PLUS_OPERATOR,
+        "++": PLUS_PLUS_OPERATOR,
+        "-": MINUS_OPERATOR,
+        "- neg": NEG_OPERATOR,
+        "*": TIMES_OPERATOR,
+        "?:": TERNARY_OPERATOR,
+        ">": GT_OPERATOR,
+        "<": LT_OPERATOR,
+        "()": PARENTHESES_OPERATOR
     },
     initializer_formats={
         "$int": pt.InitializationSpec(
@@ -631,22 +755,11 @@ SPEC = pt.Spec(
             format="false"
         )
     },
-    operators={
-        "+": PLUS_OPERATOR,
-        "++": PLUS_PLUS_OPERATOR,
-        "-": MINUS_OPERATOR,
-        "- neg": NEG_OPERATOR,
-        "*": TIMES_OPERATOR,
-        "?:": TERNARY_OPERATOR,
-        ">": GT_OPERATOR,
-        "()": PARENTHESES_OPERATOR
-    },
     expression_separators={";": SEMICOLON}
 )
 
 TOKENIZER_ITEMS = TokenizerItems(
     primitive_types=SPEC.primitive_types,
-    operators=SPEC.operators,
     expression_separators=SPEC.expression_separators
 )
 TOKENIZER = Tokenizer(TOKENIZER_ITEMS)

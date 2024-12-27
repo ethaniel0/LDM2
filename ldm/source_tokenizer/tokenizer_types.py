@@ -26,6 +26,7 @@ class Token:
     type: TokenType
     value: str
     line: int
+    char: int
 
     def __repr__(self):
         return f"Token<{self.type}, {self.value}>"

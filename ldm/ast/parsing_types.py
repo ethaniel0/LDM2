@@ -1,11 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
-from enum import Enum
 
 from ldm.lib_config2.spec_parsing import string_to_typespec
 from ldm.source_tokenizer.tokenizer_types import Token
-from ldm.lib_config2.parsing_types import Spec, Operator, TypeSpec, StructuredObject, ComponentType, \
+from ldm.lib_config2.parsing_types import Spec, TypeSpec, StructuredObject, ComponentType, \
     StructureComponentType, StructureComponent, OperatorType
 
 
@@ -86,32 +85,11 @@ class ParsingContext:
             return self.parent.get_global(key)
         return None
 
-
-@dataclass
-class OperatorInstance:
-    operator: Operator
-    '''The operator that this instance represents'''
-    operands: list[ValueToken | OperatorInstance]
-    '''List of parsed operands, each either a ValueToken or another OperatorInstance'''
-    result_type: TypeSpec
-    '''The type of the result of this operator'''
-    parse_parent: OperatorInstance | None
-    '''The parent operator instance, if this operator is a sub-expression'''
-    token: Token | None
-    '''The first string token that represents this operator'''
-
-    def __str__(self):
-        return f"OperatorInstance({self.operator.name})"
-
-    def __repr__(self):
-        return f"OperatorInstance({self.operator.name})"
-
-
 @dataclass
 class ValueToken:
     value: Token  # This could be a literal or variable name, depending on your language
     var_type: TypeSpec
-    parse_parent: OperatorInstance | None
+    parse_parent: StructuredObjectInstance | None
 
     def __str__(self):
         return f"ValueToken({self.value.value}: {self.var_type})"

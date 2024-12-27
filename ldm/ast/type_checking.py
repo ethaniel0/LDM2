@@ -1,5 +1,5 @@
-from ldm.ast.parsing_types import OperatorInstance, ParsingItems, ValueToken, StructuredObjectInstance
-from ldm.lib_config2.parsing_types import TypeSpec, StructureComponentType
+from ldm.ast.parsing_types import ParsingItems, ValueToken, StructuredObjectInstance
+from ldm.lib_config2.parsing_types import TypeSpec
 
 
 def typespec_matches(t1: TypeSpec, t2: TypeSpec) -> bool:
