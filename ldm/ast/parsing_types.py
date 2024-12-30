@@ -134,6 +134,8 @@ class StructuredObjectInstance:
     """The structured object that this instance represents"""
     components: dict[str, SOInstanceItem]
     """Dictionary of components, as [component name: component instance object]"""
+    variable_attributes: dict[str, TypeSpec] | None = None
+    """Attributes attached to a variable, if any."""
     operator_fields: OperatorFields | None = None
     """Fields needed for an operator, if any."""
 

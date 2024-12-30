@@ -87,12 +87,14 @@ def convert_relative_typespec(t: TypeSpec, node: dict, items: ParsingItems, cont
         val = node[t.name[1:]]
         if isinstance(val, ValueToken):
             return val.var_type
+        elif isinstance(val, TypenameInstance):
+            return val.value
         elif isinstance(val, StructuredObjectInstance):
             return val.operator_fields.result_type
         ts.name = val
 
     for i in range(len(t.subtypes)):
-        t.subtypes[i] = convert_relative_typespec(t.subtypes[i], node, items, context)
+        ts.subtypes.append(convert_relative_typespec(t.subtypes[i], node, items, context))
 
     return ts
 
@@ -200,7 +202,8 @@ class StructureParser:
             var_index: int,
             structure: Structure,
             filter: StructureFilter | None,
-            short: bool = False
+            short: bool = False,
+            error_on_failure: bool = True
     ):
         until = ""
         if var_index < len(structure.component_defs) - 1:
@@ -213,7 +216,7 @@ class StructureParser:
             if expr is None:
                 raise RuntimeError(f'Could not parse expression at line {tokens.peek().line}')
         else:
-            expr = self.__parse_expression(tokens, context, filter, until)
+            expr = self.__parse_expression(tokens, context, filter, until, error_on_failure)
         next_token = tokens.peek()
         return SOInstanceItem(ComponentType.EXPRESSION, expr, next_token)
 
@@ -297,7 +300,7 @@ class StructureParser:
         while tokens.peek().value != repeat_end.value:
             try:
                 new_soi = StructuredObjectInstance(StructuredObject("", new_structure), {})
-                sp.__parse_single_structure(tokens, new_soi, context, filter=filter)
+                sp.__parse_single_structure(tokens, new_soi, context, filter=filter, expr_expr_error_on_failure=False)
                 if tokens.peek().value != separator and tokens.peek().value != repeat_end.value:
                     raise RuntimeError(f"Unable to parse component structure at {tokens.peek()}")
                 if tokens.peek().value == separator:
@@ -349,7 +352,8 @@ class StructureParser:
             context: ParsingContext,
             parsed_variables: dict[str, SOInstanceItem],
             filter: StructureFilter | None,
-            last_expression_short: bool = False
+            last_expression_short: bool = False,
+            expr_error_on_failure: bool = True
     ):
         comp = structure.component_defs[var_index]
         if comp.value not in structure.component_specs:
@@ -361,7 +365,7 @@ class StructureParser:
         elif var.base == ComponentType.NAME:
             result = self.__handle_name(comp, structure, tokens, context)
         elif var.base == ComponentType.EXPRESSION:
-            result = self.__handle_expression(tokens, context, var_index, structure, filter, last_expression_short)
+            result = self.__handle_expression(tokens, context, var_index, structure, filter, last_expression_short, expr_error_on_failure)
             result = result.value
         elif var.base == ComponentType.EXPRESSIONS:
             result = self.__handle_expressions(tokens, context, var_index, structure, parsed_variables)
@@ -514,6 +518,8 @@ class StructureParser:
             af.add_filter(filter_comp1)
             af.add_filter(filter_comp2)
 
+            af.allow_expressions = True
+
             structures = self.__create_structure_list(tokens, context, af, skip_first_expressions=True)
 
             parse_as_variable = False
@@ -539,9 +545,13 @@ class StructureParser:
                     max_structure, max_structure_index = result
 
             if parse_as_variable:
-                t, _ = next(tokens)
-                val = self.__parse_value(t, context)
-                stack.append(val)
+                t = tokens.peek()
+                try:
+                    val = self.__parse_value(t, context)
+                    stack.append(val)
+                    next(tokens)
+                except:
+                    return None
 
             else:
                 try:
@@ -573,7 +583,8 @@ class StructureParser:
                            tokens: TokenIterator,
                            context: ParsingContext,
                            filter: StructureFilter | None,
-                           until=""):
+                           until="",
+                           error_on_failure=True) -> ValueToken | StructuredObjectInstance | None:
         if not filter:
             filter = StructureFilter()
 
@@ -590,7 +601,10 @@ class StructureParser:
 
             result = self.__parse_expression_to_full_tree(tokens, context, stack, tree, filter)
             if result is None:
-                raise RuntimeError(f'Could not parse expression at line {tokens.peek().line}')
+                if error_on_failure:
+                    raise RuntimeError(f'Could not parse expression at line {tokens.peek().line}')
+                else:
+                    break
             if isinstance(result, StructuredObjectInstance):
                 tree = result
 
@@ -600,8 +614,11 @@ class StructureParser:
         if len(stack) > 1:
             raise RuntimeError(f'Expression does not simplify to a singular value at line {stack[0].value.line}')
 
+        if len(stack) == 0:
+            return None
+
         if isinstance(stack[0], StructuredObjectInstance):
-            type_operator(stack[0], self.items)
+            type_operator(stack[0], self.items, context)
         return stack[0]
 
     def __parse_single_structure(
@@ -613,6 +630,7 @@ class StructureParser:
             from_index: int = 0,
             filter: StructureFilter | None = None,
             last_expression_short: bool = False,
+            expr_expr_error_on_failure: bool = True
     ):
         structure_count = from_index
         reference_parsed_variables = referenced_parsed_variables or {}
@@ -624,7 +642,15 @@ class StructureParser:
 
             if s.component_type == StructureComponentType.Variable:
                 combined_vars = combine_dictionaries(reference_parsed_variables, soi.components)
-                n, v = self.__handle_variable(structure_count, structure, tokens, context, combined_vars, filter, last_expression_short and is_last)
+                n, v = self.__handle_variable(
+                    structure_count,
+                    structure,
+                    tokens,
+                    context,
+                    combined_vars,
+                    filter,
+                    last_expression_short and is_last,
+                    expr_expr_error_on_failure)
                 if v is None:
                     raise RuntimeError(f'Could not parse variable {n} at line {tokens.peek().line}')
                 soi.components[n] = v
@@ -647,6 +673,8 @@ class StructureParser:
         is_filtering = filter and not filter.all
 
         for so in self.items.config_spec.structured_objects.values():
+            if so.expression_only and (filter is None) or (filter and not filter.allow_expressions):
+                continue
             if is_filtering and not filter.matches(so):
                 continue
             if len(so.structure.component_defs) == 0 or (not is_filtering and so.dependent):
@@ -691,7 +719,7 @@ class StructureParser:
                             soi = StructuredObjectInstance(so, component_dict)
                             possible_structures.append(soi)
                         tokens.goto(cur_index)
-                    except:
+                    except Exception as e:
                         tokens.goto(cur_index)
                         continue
 
@@ -796,7 +824,11 @@ class StructureParser:
 
             possible_structures = self.__create_structure_list(tokens, context, filter)
 
-            best_structure, best_index = self.__test_structures(tokens, possible_structures, context, filter, True)
+            if len(possible_structures) == 0:
+                best_structure = self.__parse_expression(tokens, context, filter)
+                best_index = tokens.current_index()
+            else:
+                best_structure, best_index = self.__test_structures(tokens, possible_structures, context, filter, True)
 
             max_soi = best_structure
             max_soi_vars: dict[str, SOInstanceItem] = best_structure.components
@@ -813,6 +845,7 @@ class StructureParser:
                 so_type = cv.type
                 if so_type.name.startswith('$'):
                     so_type = max_soi_vars[so_type.name[1:]].value
+                so_type = convert_relative_typespec(so_type, max_soi_vars, self.items, context)
 
                 if cv.check_type:
                     st = string_to_typespec(cv.check_type)
@@ -827,6 +860,13 @@ class StructureParser:
                             tokens.goto(tokens.current_index() - 1)
                         raise RuntimeError(f"Type mismatch: {t} != {so_type.name} on line {tokens.peek().line}")
 
+                if cv.attributes:
+                    so_type.attributes = {}
+                    for key, path in cv.attributes.items():
+                        component = extract_scope_items(path, True, max_soi_vars)
+                        so_type.attributes[key] = component
+
+                    print("gotta make some attributes")
 
                 context.variables[name] = so_type
 

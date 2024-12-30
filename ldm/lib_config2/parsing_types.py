@@ -13,8 +13,8 @@ class TypeSpec:
     '''number of subtypes'''
     subtypes: list[TypeSpec]
     '''list of subtypes'''
-    attributes: dict[str, TypeSpec]
-    def __init__(self, name: str, num_subtypes: int, subtypes: list[TypeSpec], attributes=None):
+    attributes: dict[str, TypeSpec | list[TypeSpec]]
+    def __init__(self, name: str, num_subtypes: int, subtypes: list[TypeSpec], attributes: dict[str, TypeSpec | list[TypeSpec]] | None =None):
         self.name = name
         self.num_subtypes = num_subtypes
         self.subtypes = subtypes
@@ -45,6 +45,16 @@ class TypeSpec:
     def __repr__(self):
         return str(self)
 
+class ConfigTypeSpec(TypeSpec):
+    def __init__(
+            self,
+            name: str,
+            num_subtypes: int,
+            subtypes: list[TypeSpec],
+            attributes: dict[str, TypeSpec | list[TypeSpec]] | None =None,
+            path: str | None = None):
+        super().__init__(name, num_subtypes, subtypes, attributes)
+        self.path: str = path or ""
 
 @dataclass
 class MethodArgument:
@@ -129,7 +139,7 @@ class CreateVariable:
     """The scope of the component: local or global"""
     check_type: str | None
     """The value / expression to check to make sure the typing is correct"""
-    attributes: dict[str, TypeSpec] | None = None
+    attributes: dict[str, str] | None = None
 
 @dataclass
 class CreateType:
@@ -147,8 +157,8 @@ class CreateType:
 @dataclass
 class OperatorOverload:
     name: str
-    return_type: TypeSpec
-    variables: dict[str, TypeSpec]
+    return_type: ConfigTypeSpec
+    variables: dict[str, ConfigTypeSpec]
 
     def __str__(self):
         return f"<{self.name}|{self.variables.values()}>"
@@ -199,6 +209,8 @@ class StructuredObject:
     When false, can be used independently of other structures.
     When true, can only be called upon when being parsed as part of another structure.
     '''
+    expression_only: bool = False
+    """When true, only uses this structure for expressions. Cannot be used as a standalone structure."""
 
     def get_nth_component(self, n: int):
         defs = self.structure.component_defs

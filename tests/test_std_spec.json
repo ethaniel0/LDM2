@@ -175,11 +175,11 @@
       }
     ],
     "create_variable": {
-      "type": "function<$typename>",
+      "type": "function<$type>",
       "name": "$varname",
       "scope": "local",
       "attributes": {
-        "arguments": "$arguments"
+        "arguments": "$arguments.type"
       }
     }
   },
@@ -282,7 +282,8 @@
     ],
     "create_operator": {
       "overload_fields": ["left", "right"]
-    }
+    },
+    "expression_only": true
 
   },
   {
@@ -315,8 +316,8 @@
     ],
     "create_operator": {
       "overload_fields": ["left", "right"]
-    }
-
+    },
+    "expression_only": true
   },
   {
     "type": "operator_overload",
@@ -349,12 +350,41 @@
     ],
     "create_operator": {
       "overload_fields": ["left", "right"]
-    }
-
+    },
+    "expression_only": true
   },
   {
     "type": "operator_overload",
     "name": "=",
     "left": "$typename<T>", "right": "$typename<T>", "return": "$typename<T>"
+  },
+
+  {
+    "type": "structure",
+    "name": "function_call",
+    "components": [
+      {"base": "expression", "name":  "function_name"},
+      {
+        "base": "repeated_element",
+        "name":  "arguments",
+        "components": [
+            {
+                "base": "expression",
+                "name": "arg"
+            }
+        ]
+      }
+    ],
+    "create_operator": {
+      "overload_fields": ["function_name", "arguments.arg"]
+    },
+    "expression_only": true
+  },
+  {
+    "type": "operator_overload",
+    "name": "function_call",
+    "function_name": "function<$typename<T>>",
+    "arguments.arg": "$typename_attributes<$function_name>.arguments",
+    "return": "$typename<T>"
   }
 ]

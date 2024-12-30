@@ -11,7 +11,8 @@ def string_to_typespec(arg: str) -> TypeSpec:
         return TypeSpec(arg, 0, [])
     if '>' not in arg:
         raise ValueError(f"Invalid type spec {arg}")
-    inside_brackets = arg[arg.index('<') + 1:arg.rindex('>')].strip()
+    rindex = arg.rindex('>')
+    inside_brackets = arg[arg.index('<') + 1:rindex].strip()
     # parse recursively, but allow for a list of types
     # can't just split "," because of nested types
     types = []
@@ -29,7 +30,12 @@ def string_to_typespec(arg: str) -> TypeSpec:
     if start != len(inside_brackets):
         types.append(string_to_typespec(inside_brackets[start:].strip()))
 
-    return TypeSpec(arg[:arg.index('<')], len(types), types)
+    if len(arg) > rindex + 1 and arg[rindex + 1] == '.':
+        path = arg[rindex + 2:]
+    else:
+        path = ""
+
+    return ConfigTypeSpec(arg[:arg.index('<')], len(types), types, path=path)
 
 
 def parse_primitive_type(arg: dict[str, Any]) -> PrimitiveType:
@@ -154,13 +160,16 @@ def get_create_variable(arg: dict[str, Any]) -> CreateVariable | None:
     check_type = None
     if 'check_type' in cv:
         check_type = cv['check_type']
+    attributes = None
+    if 'attributes' in cv:
+        attributes = cv['attributes']
 
     val_name = cv['name']
     val_type = string_to_typespec(cv['type'])
     if cv['scope'] not in scope_options:
         raise ValueError('Scope must be one of local, global')
     val_scope = scope_options[cv['scope']]
-    return CreateVariable(val_name, val_type, val_scope, check_type)
+    return CreateVariable(val_name, val_type, val_scope, check_type, attributes)
 
 def get_create_type(arg: dict[str, Any]) -> CreateType | None:
     if 'create_type' not in arg:
@@ -214,6 +223,11 @@ def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
     if 'dependent' in arg and arg['dependent']:
         is_dependent = True
 
+    is_expression_only = False
+
+    if 'expression_only' in arg and arg['expression_only']:
+        is_expression_only = True
+
     return StructuredObject(
         name=name,
         structure=structure,
@@ -221,6 +235,7 @@ def parse_general_structure(arg: dict[str, Any]) -> StructuredObject:
         create_type=create_type,
         create_operator=create_operator,
         dependent=is_dependent,
+        expression_only=is_expression_only
     )
 
 
