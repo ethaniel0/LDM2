@@ -72,7 +72,7 @@
   },
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "+",
     "translate": "$left + $right"
   },
@@ -99,7 +99,7 @@
   },
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "-",
     "translate": "$left - $right"
   },
@@ -125,7 +125,7 @@
   },
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "neg",
     "translate": "- $right"
   },
@@ -141,7 +141,7 @@
   },
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "*",
     "translate": "$left * $right"
   },
@@ -167,20 +167,20 @@
   },
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "?:",
-    "translate": "$middle if $left else $right"
+    "translate": "$if_true if $condition else $if_false"
   },
   {
     "type": "operator_overload",
     "name": "?:",
-    "left": "bool",
-    "middle": "$typename<T>",
-    "right": "$typename<T>"
+    "condition": "bool",
+    "if_true": "$typename<T>",
+    "if_false": "$typename<T>"
   },
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "=",
     "translate": "$left = $right"
   },
@@ -193,7 +193,7 @@
 
 
   {
-    "type": "operator",
+    "type": "structure",
     "name": "<",
     "translate": "$left < $right"
   },

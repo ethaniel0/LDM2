@@ -272,7 +272,6 @@
     "value_type": "bool"
   },
 
-
   {
     "type": "structure",
     "name": "+",
@@ -305,6 +304,116 @@
     "type": "operator_overload",
     "name": "+",
     "left": "float", "right": "float", "return": "float"
+  },
+
+  {
+    "type": "structure",
+    "name": "-",
+    "components": [
+          {"base": "expression", "name": "left"},
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left", "right"]
+    },
+    "expression_only": true
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "int", "right": "int", "return": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "int", "right": "float", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "float", "right": "int", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "-",
+    "left": "float", "right": "float", "return": "float"
+  },
+
+  {
+    "type": "structure",
+    "name": "neg",
+    "components": [
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["right"]
+    },
+    "expression_only": true
+  },
+  {
+    "type": "operator_overload",
+    "name": "neg",
+    "right": "int", "return": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "neg",
+    "right": "float", "return": "float"
+  },
+
+  {
+    "type": "structure",
+    "name": "*",
+    "components": [
+          {"base": "expression", "name": "left"},
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left", "right"]
+    },
+    "expression_only": true
+
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "int", "right": "int", "return": "int"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "int", "right": "float", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "float", "right": "int", "return": "float"
+  },
+  {
+    "type": "operator_overload",
+    "name": "*",
+    "left": "float", "right": "float", "return": "float"
+  },
+
+  {
+    "type": "structure",
+    "name": "?:",
+    "components": [
+          {"base": "expression", "name": "condition"},
+          {"base": "expression", "name": "if_true"},
+          {"base": "expression", "name": "if_false"}
+    ],
+    "create_operator": {
+      "overload_fields": ["condition", "if_true", "if_false"]
+    },
+    "expression_only": true
+
+  },
+  {
+    "type": "operator_overload",
+    "name": "?:",
+    "condition": "bool", "if_true": "$typename<T>", "if_false": "$typename<T>",
+    "return": "$typename<T>"
   },
 
   {

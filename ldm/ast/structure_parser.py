@@ -866,8 +866,6 @@ class StructureParser:
                         component = extract_scope_items(path, True, max_soi_vars)
                         so_type.attributes[key] = component
 
-                    print("gotta make some attributes")
-
                 context.variables[name] = so_type
 
             # CREATES TYPE

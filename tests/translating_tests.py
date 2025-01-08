@@ -39,13 +39,12 @@ class MyTestCase(unittest.TestCase):
 
         tokenizer_items = TokenizerItems(
             primitive_types=spec.primitive_types,
-            operators=spec.operators,
             expression_separators=spec.expression_separators
         )
         tokenizer = Tokenizer(tokenizer_items)
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
-        ast = parse(tokens, parsing_items, tokenizer_items)
+        ast, _ = parse(tokens, parsing_items, tokenizer_items)
         code = translate(ast, translation)
         print('code:')
         print(code)
@@ -78,19 +77,18 @@ class MyTestCase(unittest.TestCase):
         }
         
         int add(int a, int b){
-            int x = 6;
+            int x = true ? 8 : 9 + 7;
         } 
         """
 
         tokenizer_items = TokenizerItems(
             spec.primitive_types,
-            spec.operators,
             spec.expression_separators
         )
         tokenizer = Tokenizer(tokenizer_items)
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
-        ast = parse(tokens, parsing_items, tokenizer_items)
+        ast, _ = parse(tokens, parsing_items, tokenizer_items)
         code = translate(ast, translation)
         print('code:')
         print(code)

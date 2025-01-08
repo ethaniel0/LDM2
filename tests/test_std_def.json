@@ -53,6 +53,46 @@
 
   {
     "type": "structure",
+    "name": "-",
+    "structure": "$left + $right",
+    "create_operator": {
+      "precedence": 6,
+      "associativity": "left-to-right"
+    }
+  },
+
+  {
+    "type": "structure",
+    "name": "neg",
+    "structure": "- $right",
+    "create_operator": {
+      "precedence": 3,
+      "associativity": "right-to-left"
+    }
+  },
+
+  {
+    "type": "structure",
+    "name": "*",
+    "structure": "$left * $right",
+    "create_operator": {
+      "precedence": 5,
+      "associativity": "left-to-right"
+    }
+  },
+
+  {
+    "type": "structure",
+    "name": "?:",
+    "structure": "$condition ? $if_true : $if_false",
+    "create_operator": {
+      "precedence": 5,
+      "associativity": "right-to-left"
+    }
+  },
+
+  {
+    "type": "structure",
     "name": "<",
     "structure": "$left < $right",
     "create_operator": {

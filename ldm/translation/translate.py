@@ -4,14 +4,12 @@ from typing import Any
 from ldm.lib_config2.parsing_types import ExpressionSeparator, StructureComponentType as SCT, Spec, \
     StructureSpecComponent, ComponentType
 from ldm.ast.parsing_types import (ParsingItems,
-                                   OperatorInstance,
                                    ValueToken,
                                    TypeSpec,
                                    StructuredObjectInstance,
                                    TypenameInstance, SOInstanceItem)
 from ldm.translation.translation_types import (StructuredObjectTranslation,
                                                TranslationStructureComponentType,
-                                               OperatorTranslation,
                                                TranslationStructureComponent,
                                                PrimitiveTypeTranslation,
                                                ValueKeywordTranslation,
@@ -55,14 +53,12 @@ def parse_component_structure(arg: dict, spec_components: dict[str, StructureSpe
 class TranslationItems:
     structured_objects: dict[str, StructuredObjectTranslation]
     primitive_types: dict[str, PrimitiveTypeTranslation]
-    operators: dict[str, OperatorTranslation]
     value_keywords: dict[str, ValueKeywordTranslation]
     expression_separators: dict[str, ExpressionSeparator]
 
     def __init__(self, translate_specs: dict, parse_spec: Spec):
         self.structured_objects: dict[str, StructuredObjectTranslation] = {}
         self.primitive_types: dict[str, PrimitiveTypeTranslation] = {}
-        self.operators: dict[str, OperatorTranslation] = {}
         self.value_keywords: dict[str, ValueKeywordTranslation] = {}
         self.expression_separators: dict[str, ExpressionSeparator] = {}
 
@@ -93,11 +89,6 @@ class TranslationItems:
             elif item['type'] == 'expression_separator':
                 self.expression_separators[item['name']] = ExpressionSeparator(item['name'], item['translate'])
 
-            elif item['type'] == 'operator':
-                components = parse_translate_into_components(item['translate'])
-                self.operators[item['name']] = OperatorTranslation(item['type'],
-                                                                   item['name'],
-                                                                   components)
             # else:
             #     raise RuntimeError(f"Unknown translation item type {item['type']}")
         
@@ -135,35 +126,6 @@ def translate_value_token(value_token: ValueToken, translation: TranslationItems
         return translation.value_keywords[value_token.value.value].translate
     return value_token.value.value
 
-
-def translate_operator_instance(operator_instance: OperatorInstance, translation: TranslationItems) -> str:
-    defs = operator_instance.operator.structure.component_defs
-    named_values_list: list[TranslationStructureComponent] = list(filter(lambda d: d.component_type == SCT.Variable, defs))
-
-    named_values = {named_values_list[i].value: operator_instance.operands[i] for i in range(len(named_values_list))}
-
-    code = ""
-
-    for component in translation.operators[operator_instance.operator.name].translate:
-        comp_name = component.value
-
-        if component.component_type == TranslationStructureComponentType.String or \
-                component.component_type == TranslationStructureComponentType.Whitespace:
-            code += comp_name
-            continue
-
-        if comp_name not in named_values:
-            raise RuntimeError(f'Operator "{operator_instance.operator.name}" missing value for "{comp_name}"')
-
-        value = named_values[comp_name]
-
-        if isinstance(value, ValueToken):
-            code += translate_value_token(value, translation)
-        elif isinstance(value, OperatorInstance):
-            code += translate_operator_instance(value, translation)
-
-    return code
-
 def translate_typename(typename: TypenameInstance, translation: TranslationItems) -> str:
     if typename.value.name not in translation.primitive_types:
         raise RuntimeError(f'Primitive type "{typename.value.name}" not found in translation items')
@@ -184,7 +146,12 @@ def translate_expressions(exprs: list, translation_component: TranslationStructu
 
     return code
 
-def translate_component(component: SOInstanceItem, translation_component: TranslationStructureComponent, translation: TranslationItems, indentation: int) -> str:
+def translate_component(component: SOInstanceItem | ValueToken | StructuredObjectInstance, translation_component: TranslationStructureComponent, translation: TranslationItems, indentation: int) -> str:
+    if isinstance(component, ValueToken):
+        return translate_value_token(component, translation)
+    elif isinstance(component, StructuredObjectInstance):
+        return translate_structured_object(component, translation, indentation)
+
     comp_item_type = component.item_type
     comp_value: Any = component.value
     code = ""
@@ -192,8 +159,8 @@ def translate_component(component: SOInstanceItem, translation_component: Transl
     if comp_item_type == ComponentType.EXPRESSION:
         if isinstance(component.value, ValueToken):
             code += translate_value_token(comp_value, translation)
-        elif isinstance(comp_value, OperatorInstance):
-            code += translate_operator_instance(comp_value, translation)
+        elif isinstance(comp_value, StructuredObjectInstance):
+            code += translate_structured_object(comp_value, translation, indentation)
         else:
             raise RuntimeError('expression has value other than value or operator')
     elif comp_item_type == ComponentType.TYPENAME:
@@ -238,7 +205,7 @@ def translate_structured_object(so: StructuredObjectInstance, translation: Trans
     return code
 
 
-def translate_repeated_element(elements: list[dict[str, SOInstanceItem]], component: TranslationStructureComponent, translation: TranslationItems, indent: int) -> str:
+def translate_repeated_element(elements: list[StructuredObjectInstance], component: TranslationStructureComponent, translation: TranslationItems, indent: int) -> str:
     comp_defs = component.inner_structure
 
     code = ""
@@ -251,9 +218,9 @@ def translate_repeated_element(elements: list[dict[str, SOInstanceItem]], compon
                 code += comp_def.value
 
             elif comp_def.component_type == TranslationStructureComponentType.Variable:
-                if comp_def.value not in element:
+                if comp_def.value not in element.components:
                     raise RuntimeError(f'Variable "{comp_def.value}" not found in repeated element')
-                code_component = element[comp_def.value]
+                code_component = element.components[comp_def.value]
                 code += translate_component(code_component, comp_def, translation, indent)
 
         if i < len(elements) - 1:
@@ -267,9 +234,6 @@ def translate(ast: list, translation: TranslationItems, indent=0) -> str:
     for item in ast:
         if isinstance(item, StructuredObjectInstance):
             code += translate_structured_object(item, translation, indent)
-            code += translation.expression_separators['main'].value
-        elif isinstance(item, OperatorInstance):
-            code += translate_operator_instance(item, translation)
             code += translation.expression_separators['main'].value
         elif isinstance(item, ValueToken):
             code += translate_value_token(item, translation)

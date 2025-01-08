@@ -69,22 +69,7 @@ class ValueKeywordTranslation:
 
 
 @dataclass
-class OperatorTranslation:
-    type: str
-    name: str
-    translate: list[TranslationStructureComponent]
-
-
-@dataclass
 class StructuredObjectTranslation:
     type: str
     name: str
     translate: list[TranslationStructureComponent]
-
-
-@dataclass
-class BlockTranslation:
-    type: str
-    name: str
-    translate: list[TranslationStructureComponent]
-    inner_indent: int
