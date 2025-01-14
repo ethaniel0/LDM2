@@ -560,15 +560,15 @@ class MyTestCase(unittest.TestCase):
         assert arguments[1].components['type'].value.name == 'bool'
         assert arguments[1].components['varname'].value == 'b'
 
-    def test_parsing(self):
+    def test_function_and_function_call(self):
         spec = load_setup()
         source_code = """
-        int translate(int x){
+        int translate(int x, bool y){
             int k = x + 8;
+            y ? x : k + 1;
         }
 
-        translate(5);
-
+        translate(5, true);
         """
         tokens = TOKENIZER.tokenize(source_code)
 
@@ -576,11 +576,46 @@ class MyTestCase(unittest.TestCase):
 
         assert len(ast) == 2
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
+        assert isinstance(ast[1], ast_pt.StructuredObjectInstance)
 
-    def test_operator(self):
+        func: ast_pt.StructuredObjectInstance = ast[0]
+        assert func.so.name == 'function'
+        assert func.components['type'].value.name == 'int'
+        assert func.components['varname'].value == 'translate'
+        assert len(func.components['arguments'].value) == 2
+        args = func.components['arguments'].value
+        assert args[0].components['type'].value.name == 'int'
+        assert args[0].components['varname'].value == 'x'
+        assert args[1].components['type'].value.name == 'bool'
+        assert args[1].components['varname'].value == 'y'
+        assert isinstance(func.components['body'].value, StructuredObjectInstance)
+        assert len(func.components['body'].value.components) == 1
+        body = func.components['body'].value.components['body'].value
+        assert len(body) == 2
+        assert isinstance(body[0], ast_pt.StructuredObjectInstance)
+        assert isinstance(body[1], ast_pt.StructuredObjectInstance)
+        assert body[0].so.name == 'make_variable_standard'
+        assert body[1].so.name == '+'
+
+        func_call: ast_pt.StructuredObjectInstance = ast[1]
+        assert func_call.so.name == 'function_call'
+        assert func_call.components['function_name'].value.value == 'translate'
+        assert len(func_call.components['arguments'].value) == 2
+        arg1 = func_call.components['arguments'].value[0]
+        arg2 = func_call.components['arguments'].value[1]
+        assert isinstance(arg1, ast_pt.StructuredObjectInstance)
+        assert isinstance(arg2, ast_pt.StructuredObjectInstance)
+
+        assert arg1.components['arg'].value.value == '5'
+        assert arg2.components['arg'].value.value == 'true'
+
+    def test_create_type(self):
         spec = load_setup()
         source_code = """
-        int x = 4 + 5;
+        struct Something {
+            int x;
+            int y;
+        }
         """
         tokens = TOKENIZER.tokenize(source_code)
 

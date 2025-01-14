@@ -14,24 +14,6 @@
     "return": "$typename_field<T, $right>"
   },
 
-
-  {
-    "type": "operator",
-    "name": "function_call",
-    "precedence": 2,
-    "components": [
-      {"name":  "function_name"},
-      {"name":  "arguments"}
-    ]
-  },
-  {
-    "type": "operator_overload",
-    "name": "function_call",
-    "function_name": "function<$typename<T>>",
-    "arguments": "$typename_attributes<$function_name>.arguments",
-    "return": "$typename<T>"
-  },
-
   {
     "type": "structure",
     "name": "make_variable_standard",
@@ -56,22 +38,5 @@
       "check_types": ["$expr"],
       "scopes": ["local"]
     }
-  },
-
-  {
-    "type": "structure",
-    "name": "+",
-    "components": [
-          {"base": "expression", "name": "left"},
-          {"base": "expression", "name": "right"}
-    ],
-    "create_operator": {
-      "overload_fields": ["left", "right"]
-    }
-  },
-  {
-    "type": "operator_overload",
-    "name": "+",
-    "left": "int", "right": "int", "return": "int"
   }
 ]

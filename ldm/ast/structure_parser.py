@@ -91,7 +91,11 @@ def convert_relative_typespec(t: TypeSpec, node: dict, items: ParsingItems, cont
             return val.value
         elif isinstance(val, StructuredObjectInstance):
             return val.operator_fields.result_type
-        ts.name = val
+
+        if isinstance(val, NameInstance):
+            ts.name = val.value
+        else:
+            ts.name = val
 
     for i in range(len(t.subtypes)):
         ts.subtypes.append(convert_relative_typespec(t.subtypes[i], node, items, context))
@@ -534,7 +538,7 @@ class StructureParser:
                     tokens,
                     structures,
                     context,
-                    active_filter,
+                    af,
                     error_on_failure=False,
                     skip_first_expressions=True,
                     last_expression_short=True
@@ -673,7 +677,7 @@ class StructureParser:
         is_filtering = filter and not filter.all
 
         for so in self.items.config_spec.structured_objects.values():
-            if so.expression_only and (filter is None) or (filter and not filter.allow_expressions):
+            if so.expression_only and ((filter is None) or (filter and not filter.allow_expressions)):
                 continue
             if is_filtering and not filter.matches(so):
                 continue
