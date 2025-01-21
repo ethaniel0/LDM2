@@ -64,7 +64,7 @@
   {
     "type": "structure",
     "name": "-",
-    "structure": "$left + $right",
+    "structure": "$left - $right",
     "create_operator": {
       "precedence": 6,
       "associativity": "left-to-right"

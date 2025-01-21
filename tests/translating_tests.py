@@ -56,13 +56,12 @@ class MyTestCase(unittest.TestCase):
 
         tokenizer_items = TokenizerItems(
             spec.primitive_types,
-            spec.operators,
             spec.expression_separators
         )
         tokenizer = Tokenizer(tokenizer_items)
         tokens = tokenizer.tokenize(source_code)
         parsing_items = ParsingItems(spec)
-        ast = parse(tokens, parsing_items, tokenizer_items)
+        ast, _ = parse(tokens, parsing_items, tokenizer_items)
         code = translate(ast, translation)
         print('code:')
         print(code)

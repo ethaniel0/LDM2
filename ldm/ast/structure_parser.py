@@ -424,7 +424,7 @@ class StructureParser:
                 raise ParsingTracebackError(f'{token} not defined at line {token.line}')
             return ValueToken(token, v, None)
 
-        raise ParsingTracebackError(f'Could not parse value "{token.value}" at line {token.line}')
+        raise ParsingTracebackError(f'Could not parse value "{token.value}" at line {token.line}:{token.char}')
 
 
     def __order_operator_in_tree(self, stack, tree: ValueToken | StructuredObjectInstance | None, item: ValueToken | StructuredObjectInstance):
