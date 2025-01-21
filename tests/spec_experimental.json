@@ -1,20 +1,5 @@
 [
   {
-    "type": "operator",
-    "name": ". access",
-    "components": [
-          {"name": "left"},
-          {"name": "right"}
-    ]
-  },
-  {
-    "type": "operator_overload",
-    "name": ". access",
-    "left": "$typename<T>", "right": "$identifier",
-    "return": "$typename_field<T, $right>"
-  },
-
-  {
     "type": "structure",
     "name": "make_variable_standard",
     "components": [

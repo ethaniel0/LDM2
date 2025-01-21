@@ -45,6 +45,8 @@ def parse_translate_into_components(structure: str) -> list[TranslationStructure
             is_var = True
         elif running_word == '$' and char == '$':
             is_var = False
+        elif running_word == '$' and char == '.':
+            running_word += char
         elif is_var and not char.isalnum() and char != '_':
             add_component()
             running_word += char
@@ -55,10 +57,29 @@ def parse_translate_into_components(structure: str) -> list[TranslationStructure
 
 
 @dataclass
+class DirectStringTranslation:
+    type: str
+    name: str
+    translate: str
+
+@dataclass
+class ParameterizedTranslation:
+    type: str
+    name: str
+    translate: list[TranslationStructureComponent]
+
+@dataclass
 class PrimitiveTypeTranslation:
     type: str
     name: str
     translate: str
+
+
+@dataclass
+class CreatedTypeTranslation:
+    type: str
+    name: str
+    translate: list[TranslationStructureComponent]
 
 
 @dataclass

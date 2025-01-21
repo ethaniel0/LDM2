@@ -43,6 +43,16 @@
 
   {
     "type": "structure",
+    "name": "()",
+    "structure": "( $inside )",
+    "create_operator": {
+      "precedence": 0,
+      "associativity": "left-to-right"
+    }
+  },
+
+  {
+    "type": "structure",
     "name": "+",
     "structure": "$left + $right",
     "create_operator": {
@@ -131,6 +141,32 @@
     "type": "structure",
     "name": "struct",
     "structure": "struct $struct_name $body"
+  },
+
+  {
+    "type": "structure",
+    "name": ". access",
+    "structure": "$left . $right",
+    "create_operator": {
+      "precedence": 2,
+      "associativity": "left-to-right"
+    }
+  },
+
+  {
+    "type": "structure",
+    "name": "create_struct",
+    "structure": "$struct_name { $fields }",
+    "component_structures": {
+      "fields": {
+        "structure": "$item_name = $value",
+        "separator": ","
+      }
+    },
+    "create_operator": {
+        "precedence": 0,
+        "associativity": "left-to-right"
+    }
   },
 
 

@@ -4,16 +4,6 @@
     "name": "main",
     "translate": "\n"
   },
-  {
-    "type": "value_keyword",
-    "name": "true",
-    "translate": "True"
-  },
-  {
-    "type": "value_keyword",
-    "name": "false",
-    "translate": "False"
-  },
 
   {
     "type": "primitive_type",
@@ -35,11 +25,43 @@
     "name": "float",
     "translate": "float"
   },
+  {
+    "type": "primitive_type",
+    "name":  "string",
+    "translate": "str"
+  },
+  {
+    "type": "primitive_type",
+    "name": "function",
+    "translate": "def"
+  },
+
+  {
+    "type": "value_keyword",
+    "name": "true",
+    "translate": "True"
+  },
+  {
+    "type": "value_keyword",
+    "name": "false",
+    "translate": "False"
+  },
 
   {
     "type": "structure",
     "name": "make_variable_standard",
     "translate": "$varname: $type = $expr"
+  },
+
+  {
+    "type": "structure",
+    "name": "main_block",
+    "translate": ":\n$body",
+    "component_features": {
+      "body": {
+        "indent": 4
+      }
+    }
   },
 
   {
@@ -56,13 +78,20 @@
 
   {
     "type": "structure",
-    "name": "main_block",
-    "translate": ":\n$body",
-    "component_features": {
-      "body": {
-        "indent": 4
-      }
-    }
+    "name": "struct_initialize_variable",
+    "translate": "$varname: $type"
+  },
+
+  {
+    "type": "structure",
+    "name": "struct",
+    "translate": "@dataclass\nclass $struct_name $body"
+  },
+
+  {
+    "type": "created_type",
+    "name": "struct",
+    "translate": "$.name"
   },
 
   {
@@ -73,10 +102,20 @@
 
   {
     "type": "structure",
+    "name": "()",
+    "translate": "($inside)"
+  },
+  {
+    "type": "operator_overload",
+    "name": "()",
+    "inside": "$typename<T>"
+  },
+
+  {
+    "type": "structure",
     "name": "+",
     "translate": "$left + $right"
   },
-
   {
     "type": "operator_overload",
     "name": "+",
@@ -131,13 +170,13 @@
   },
   {
     "type": "operator_overload",
-    "name": "-",
-    "left": "int", "right": "int"
+    "name": "neg",
+    "right": "int"
   },
   {
     "type": "operator_overload",
-    "name": "-",
-    "left": "float", "right": "float"
+    "name": "neg",
+    "right": "float"
   },
 
   {
@@ -181,19 +220,6 @@
 
   {
     "type": "structure",
-    "name": "=",
-    "translate": "$left = $right"
-  },
-  {
-    "type": "operator_overload",
-    "name": "=",
-    "left": "$typename<T>",
-    "right": "$typename<T>"
-  },
-
-
-  {
-    "type": "structure",
     "name": "<",
     "translate": "$left < $right"
   },
@@ -216,5 +242,59 @@
     "type": "operator_overload",
     "name": "<",
     "left": "float", "right": "int"
+  },
+
+  {
+    "type": "structure",
+    "name": "=",
+    "translate": "$left = $right"
+  },
+  {
+    "type": "operator_overload",
+    "name": "=",
+    "left": "$typename<T>",
+    "right": "$typename<T>"
+  },
+
+  {
+    "type": "structure",
+    "name": "function_call",
+    "translate": "$function_name ( $arguments )",
+    "component_features": {
+      "arguments": {
+        "translate": "$arg",
+        "separator": ", "
+      }
+    }
+  },
+  {
+    "type": "operator_overload",
+    "name": "function_call",
+    "function_name": "function<$typename<T>>",
+    "arguments": "$typename_attributes<$function_name>.arguments"
+  },
+
+  {
+    "type": "structure",
+    "name": ". access",
+    "translate": "$left . $right"
+  },
+  {
+      "type": "operator_overload",
+      "name": ". access",
+      "left": "$typename<T>",
+      "right": "$typename_field<$left>.$right"
+  },
+
+  {
+    "type": "structure",
+    "name": "create_struct",
+    "translate": "$struct_name ( $fields )",
+    "component_features": {
+      "fields": {
+        "translate": "$item_name = $value",
+        "separator": ", "
+      }
+    }
   }
 ]

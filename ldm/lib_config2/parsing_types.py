@@ -14,6 +14,8 @@ class TypeSpec:
     subtypes: list[TypeSpec]
     '''list of subtypes'''
     attributes: dict[str, TypeSpec | list[TypeSpec]]
+
+    associated_structure: StructuredObject | None = None
     def __init__(self, name: str, num_subtypes: int, subtypes: list[TypeSpec], attributes: dict[str, TypeSpec | list[TypeSpec]] | None =None):
         self.name = name
         self.num_subtypes = num_subtypes
@@ -91,7 +93,7 @@ class ComponentType(Enum):
     EXPRESSION = 'expression'
     EXPRESSIONS = 'expressions',
     REPEATED_ELEMENT = 'repeated_element',
-    STRUCTURE = 'structure',
+    STRUCTURE = 'structure'
 
 
 @dataclass
@@ -314,6 +316,8 @@ class StructureFilterComponent:
                 case _:
                     raise RuntimeError(f"Structure filter does not support operator type query for {self.value}")
 
+    def __eq__(self, other):
+        return self.type == other.type and self.value == other.value
 
 @dataclass()
 class StructureFilter:
@@ -341,6 +345,11 @@ class StructureFilter:
                 return True
         return False
 
+    def remove_filter(self, ref_filter: StructureFilterComponent):
+        self.filters = list(filter(
+            lambda x: x != ref_filter,
+            self.filters
+        ))
 
 #### TYPES ####
 

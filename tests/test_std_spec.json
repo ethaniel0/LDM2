@@ -90,6 +90,17 @@
   },
 
   {
+    "type": "value_keyword",
+    "name": "true",
+    "value_type": "bool"
+  },
+  {
+    "type": "value_keyword",
+    "name": "false",
+    "value_type": "bool"
+  },
+
+  {
     "type": "structure",
     "name": "make_variable_standard",
     "components": [
@@ -237,7 +248,6 @@
       "scope": "global",
       "fields_containers": ["body.body"]
     }
-
   },
 
   {
@@ -262,14 +272,21 @@
   },
 
   {
-    "type": "value_keyword",
-    "name": "true",
-    "value_type": "bool"
+    "type": "structure",
+    "name": "()",
+    "components": [
+          {"base": "expression", "name": "inside"}
+    ],
+    "create_operator": {
+      "overload_fields": ["inside"]
+    },
+    "expression_only": true
+
   },
   {
-    "type": "value_keyword",
-    "name": "false",
-    "value_type": "bool"
+    "type": "operator_overload",
+    "name": "()",
+    "inside": "$typename<T>", "return": "$typename<T>"
   },
 
   {
@@ -449,7 +466,6 @@
     "left": "float", "right": "float", "return": "bool"
   },
 
-
   {
     "type": "structure",
     "name": "=",
@@ -495,5 +511,56 @@
     "function_name": "function<$typename<T>>",
     "arguments.arg": "$typename_attributes<$function_name>.arguments",
     "return": "$typename<T>"
+  },
+
+  {
+    "type": "structure",
+    "name": ". access",
+    "components": [
+          {"base": "expression", "name": "left"},
+          {"base": "name", "name": "right", "type":  "any"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left"]
+    },
+    "expression_only": true
+  },
+  {
+    "type": "operator_overload",
+    "name": ". access",
+    "left": "$typename<T>",
+    "return": "$typename_field<$left>.$right"
+  },
+
+  {
+    "type": "structure",
+    "name": "create_struct",
+    "components": [
+      {
+        "base": "typename",
+        "name": "struct_name",
+        "type": "existing-global"
+      },
+      {
+        "base": "repeated_element",
+        "name": "fields",
+        "components": [
+            { "base": "name", "name": "item_name", "type": "any" },
+            { "base": "expression", "name": "value" }
+        ]
+      }
+    ],
+    "create_operator": {
+      "overload_fields": ["struct_name", "fields.value"]
+    },
+    "expression_only": true
+  },
+  {
+    "type": "operator_overload",
+    "name": "create_struct",
+    "struct_name": "$typename<STRUCT_NAME>",
+    "fields.value": "$typename_attributes_map_full<$struct_name>.fields.item_name",
+    "return": "$typename<STRUCT_NAME>"
   }
+
 ]

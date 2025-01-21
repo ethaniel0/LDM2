@@ -274,7 +274,7 @@ def parse_spec(arg: list[dict[str, Any]]) -> Spec:
             raise ValueError(f'type {overload.name} does not exist for overload to connect to')
         op = structured_objects[overload.name]
         if not op.create_operator:
-            raise ValueError(f"Structure {overload.name} is not an operatorx")
+            raise ValueError(f"Structure {overload.name} is not an operator")
         if not op.create_operator.overload_matches(overload):
             raise ValueError(f'operator overload {overload} does not match operator structure for operator {op.name}')
         op.create_operator.overloads.append(overload)

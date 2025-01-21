@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ldm.ast.type_checking import typespec_matches, type_operator
+from ldm.errors.LDMError import ParsingTracebackError
 from ldm.lib_config2.spec_parsing import string_to_typespec
 from ldm.source_tokenizer.tokenize import Token, TokenizerItems, Tokenizer
 from ldm.ast.parsing_types import (TokenIterator, ParsingItems, ParsingContext, ValueToken,
@@ -100,6 +101,9 @@ def convert_relative_typespec(t: TypeSpec, node: dict, items: ParsingItems, cont
     for i in range(len(t.subtypes)):
         ts.subtypes.append(convert_relative_typespec(t.subtypes[i], node, items, context))
 
+    ts.attributes = t.attributes
+    ts.associated_structure = t.associated_structure
+
     return ts
 
 def combine_dictionaries(dict1: dict, dict2: dict) -> dict:
@@ -171,7 +175,11 @@ class StructureParser:
             raise ValueError(f'Invalid type: {tn.value}')
         if var_type.name != '$type':
             raise ValueError(f'Invalid type: {tn.value}')
-        return TypenameInstance(ComponentType.TYPENAME, var_type.subtypes[0], tn)
+
+        tni = TypenameInstance(ComponentType.TYPENAME, var_type.subtypes[0], tn)
+        tni.value.attributes = var_type.attributes
+        tni.value.associated_structure = var_type.associated_structure
+        return tni
 
     def __handle_name(self, comp: StructureComponent, structure: Structure, tokens: TokenIterator, context: ParsingContext):
         var = structure.component_specs[comp.value]
@@ -184,18 +192,18 @@ class StructureParser:
 
         if var_type == 'existing-global':
             if not context.has_global(varname.value):
-                raise RuntimeError(f'{varname} does not exist at line {varname.line}')
+                raise ParsingTracebackError(f'{varname} does not exist at line {varname.line}')
         elif var_type == 'existing-local':
             if not context.has_local(varname.value):
-                raise RuntimeError(f'{varname} does not exist at line {varname.line}')
+                raise ParsingTracebackError(f'{varname} does not exist at line {varname.line}')
         elif var_type == 'new-global':
             if context.has_global(varname.value):
-                raise RuntimeError(f'{varname} already exists at line {varname.line}')
+                raise ParsingTracebackError(f'{varname} already exists at line {varname.line}')
         elif var_type == 'new-local':
             if context.has_local(varname.value):
-                raise RuntimeError(f'{varname} already exists at line {varname.line}')
+                raise ParsingTracebackError(f'{varname} already exists at line {varname.line}')
         elif var_type != 'any':
-            raise RuntimeError(f'make-variable type "{var_type}" not recognized')
+            raise ParsingTracebackError(f'make-variable type "{var_type}" not recognized')
 
         return NameInstance(ComponentType.NAME, varname.value, varname)
 
@@ -217,8 +225,8 @@ class StructureParser:
 
         if short:
             expr = self.__parse_expression_to_full_tree(tokens, context, [], None, filter)
-            if expr is None:
-                raise RuntimeError(f'Could not parse expression at line {tokens.peek().line}')
+            if isinstance(expr, ParsingTracebackError):
+                raise ParsingTracebackError(f'Could not parse expression at line {tokens.peek().line}', expr)
         else:
             expr = self.__parse_expression(tokens, context, filter, until, error_on_failure)
         next_token = tokens.peek()
@@ -233,7 +241,7 @@ class StructureParser:
             if var.other['scope'] == 'local':
                 local = True
             elif var.other['scope'] != 'global':
-                raise RuntimeError(f"Unknown scope {var.other['scope']} for expressions")
+                raise ParsingTracebackError(f"Unknown scope {var.other['scope']} for expressions")
 
         returning_context: ParsingContext | None = None
 
@@ -264,14 +272,14 @@ class StructureParser:
                     if len(var_types) == 1:
                         var_types = [var_types[0]] * len(var_names)
                     else:
-                        raise RuntimeError(f'Non-corresponding types and names for scope')
+                        raise ParsingTracebackError(f'Non-corresponding types and names for scope')
 
                 for i in range(len(var_names)):
                     block_context.variables[var_names[i]] = var_types[i]
 
         sp = StructureParser(self.items, self.tokenizer_items)
         if len(structure.component_defs) <= var_index + 1:
-            raise RuntimeError(f'Expressions variable in structure must have a following string')
+            raise ParsingTracebackError(f'Expressions variable in structure must have a following string')
         next_comp_def = structure.component_defs[var_index + 1]
         if next_comp_def.component_type != StructureComponentType.String:
             raise NotImplementedError('Variable after an expressions structure component not implemented')
@@ -279,7 +287,7 @@ class StructureParser:
         next_token = tokens.peek()
         result = sp.parse(tokens, block_context, until=next_comp_def.value, filter=filter)
         if result is None:
-            raise RuntimeError(f'Could not parse expressions')
+            raise ParsingTracebackError(f'Could not parse expressions')
         return SOInstanceItem(ComponentType.EXPRESSIONS, result, next_token, created_context=returning_context)
 
     def __handle_repeated_element(self, tokens: TokenIterator, context: ParsingContext, var_index: int, structure: Structure, filter: StructureFilter | None):
@@ -294,7 +302,7 @@ class StructureParser:
 
         repeat_end = structure.component_defs[var_index + 1]
         if repeat_end.component_type != StructureComponentType.String:
-            raise RuntimeError(f'Variables after repeated structures are not yet supported.')
+            raise ParsingTracebackError(f'Variables after repeated structures are not yet supported.')
 
         sp = StructureParser(self.items, self.tokenizer_items)
 
@@ -306,11 +314,11 @@ class StructureParser:
                 new_soi = StructuredObjectInstance(StructuredObject("", new_structure), {})
                 sp.__parse_single_structure(tokens, new_soi, context, filter=filter, expr_expr_error_on_failure=False)
                 if tokens.peek().value != separator and tokens.peek().value != repeat_end.value:
-                    raise RuntimeError(f"Unable to parse component structure at {tokens.peek()}")
+                    raise ParsingTracebackError(f"Unable to parse component structure at {tokens.peek()}")
                 if tokens.peek().value == separator:
                     next(tokens)
                 elements.append(new_soi)
-            except RuntimeError:
+            except ParsingTracebackError:
                 break
 
         return SOInstanceItem(ComponentType.REPEATED_ELEMENT, elements, first_token)
@@ -361,7 +369,7 @@ class StructureParser:
     ):
         comp = structure.component_defs[var_index]
         if comp.value not in structure.component_specs:
-            raise RuntimeError(f"structure component {comp.value} not found")
+            raise ParsingTracebackError(f"structure component {comp.value} not found")
         var = structure.component_specs[comp.value]
 
         if var.base == ComponentType.TYPENAME:
@@ -379,7 +387,7 @@ class StructureParser:
             result = self.__handle_structure(tokens, context, var_index, structure, parsed_variables, filter)
 
         else:
-            raise RuntimeError(f'base {var.base} not recognized')
+            raise ParsingTracebackError(f'base {var.base} not recognized')
 
         return var.name, result
 
@@ -390,33 +398,33 @@ class StructureParser:
             if '$int' in init_formats:
                 ts = TypeSpec(init_formats['$int'].ref_type, 0, [])
                 return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for int')
+            raise ParsingTracebackError(f'No initializer format for int')
 
         if token.type == TokenType.Float:
             if '$float' in init_formats:
                 ts = TypeSpec(init_formats['$float'].ref_type, 0, [])
                 return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for float')
+            raise ParsingTracebackError(f'No initializer format for float')
 
         if token.type == TokenType.String:
             if '$string' in init_formats:
                 ts = TypeSpec(init_formats['$string'].ref_type, 0, [])
                 return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for string')
+            raise ParsingTracebackError(f'No initializer format for string')
 
         if token.type == TokenType.ValueKeyword:
             if token.value in init_formats:
                 ts = TypeSpec(init_formats[token.value].ref_type, 0, [])
                 return ValueToken(token, ts, None)
-            raise RuntimeError(f'No initializer format for {token.value}')
+            raise ParsingTracebackError(f'No initializer format for {token.value}')
 
         if token.type == TokenType.Identifier:
             v = context.get_global(token.value)
             if v is None:
-                raise RuntimeError(f'{token} not defined at line {token.line}')
+                raise ParsingTracebackError(f'{token} not defined at line {token.line}')
             return ValueToken(token, v, None)
 
-        raise RuntimeError(f'Could not parse value "{token.value}" at line {token.line}')
+        raise ParsingTracebackError(f'Could not parse value "{token.value}" at line {token.line}')
 
 
     def __order_operator_in_tree(self, stack, tree: ValueToken | StructuredObjectInstance | None, item: ValueToken | StructuredObjectInstance):
@@ -424,14 +432,14 @@ class StructureParser:
         if isinstance(item, ValueToken):
             if tree is None:
                 return item
-            raise RuntimeError(f"\"{item.value}\" cannot be used as an operator")
+            raise ParsingTracebackError(f"\"{item.value}\" cannot be used as an operator")
 
         has_left = item.operator_fields.op_type in [OperatorType.UNARY_LEFT, OperatorType.BINARY]
         num_lefts = item.operator_num_lefts()
 
         if tree is None and has_left:
             if len(stack) < num_lefts:
-                raise RuntimeError(f"Operator {item.so.name} does not have a left operand")
+                raise ParsingTracebackError(f"Operator {item.so.name} does not have a left operand")
 
             for i in range(num_lefts):
                 name = item.so.structure.component_defs[i].value
@@ -464,7 +472,7 @@ class StructureParser:
                          item.so.create_operator.associativity == Associativity.LEFT_TO_RIGHT) or \
                         tree.operator_fields.op_type in [OperatorType.UNARY_LEFT, OperatorType.INTERNAL]:
                     if tree.operator_fields_filled() != len(tree.so.create_operator.fields):
-                        raise RuntimeError(f'Operator {tree.so.name} not fully parsed')
+                        raise ParsingTracebackError(f'Operator {tree.so.name} not fully parsed')
                     if tree.operator_fields.parse_parent is None:
                         first_expr = item.so.structure.component_defs[0].value
                         item.components[first_expr] = tree
@@ -486,12 +494,12 @@ class StructureParser:
                 return item
 
             if len(item.components) == 0:
-                raise RuntimeError(f"Unexpected Operator {item.so.name} (line coming later)")
+                raise ParsingTracebackError(f"Unexpected Operator {item.so.name} (line coming later)")
 
             first_filled_var = list(item.components.values())[0]
             if isinstance(first_filled_var, ValueToken):
-                raise RuntimeError(f'Unexpected operator {item.so.name} at line {first_filled_var.value.line}')
-            raise RuntimeError(f'Unexpected operator {item.so.name} at line {first_filled_var.token.line}')
+                raise ParsingTracebackError(f'Unexpected operator {item.so.name} at line {first_filled_var.value.line}')
+            raise ParsingTracebackError(f'Unexpected operator {item.so.name} at line {first_filled_var.token.line}')
 
     def __parse_expression_to_full_tree(self,
                                         tokens: TokenIterator,
@@ -514,13 +522,21 @@ class StructureParser:
             if needs_left:
                 filter_comp1 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "binary")
                 filter_comp2 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "unary_left")
+
+                filter_unwanted1 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "internal")
+                filter_unwanted2 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "unary_right")
             else:
                 filter_comp1 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "internal")
                 filter_comp2 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "unary_right")
 
+                filter_unwanted1 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "binary")
+                filter_unwanted2 = StructureFilterComponent(StructureFilterComponentType.OPERATOR_TYPE, "unary_left")
+
             af = active_filter.clone()
             af.add_filter(filter_comp1)
             af.add_filter(filter_comp2)
+            af.remove_filter(filter_unwanted1)
+            af.remove_filter(filter_unwanted2)
 
             af.allow_expressions = True
 
@@ -543,7 +559,7 @@ class StructureParser:
                     skip_first_expressions=True,
                     last_expression_short=True
                 )
-                if result is None:
+                if isinstance(result, ParsingTracebackError):
                     parse_as_variable = True
                 else:
                     max_structure, max_structure_index = result
@@ -554,14 +570,14 @@ class StructureParser:
                     val = self.__parse_value(t, context)
                     stack.append(val)
                     next(tokens)
-                except:
-                    return None
+                except ParsingTracebackError as pe:
+                    return pe
 
             else:
                 try:
                     tree = self.__order_operator_in_tree(stack, tree, max_structure)
                     tokens.goto(max_structure_index)
-                except RuntimeError as _:
+                except ParsingTracebackError as _:
                     stack.append(tree)
 
             if len(stack) == 1 and tree is None:
@@ -574,9 +590,9 @@ class StructureParser:
                 return head
 
         if tree and len(stack) != 0 or not tree and len(stack) != 1:
-            return None
+            return ParsingTracebackError("More than one return value in resulting expression")
         if tree and tree.operator_fields_filled() < len(tree.so.create_operator.fields):
-            return None
+            return ParsingTracebackError(f"Operator {tree.so.name} not fully parsed")
 
         if tree:
             return tree
@@ -588,7 +604,7 @@ class StructureParser:
                            context: ParsingContext,
                            filter: StructureFilter | None,
                            until="",
-                           error_on_failure=True) -> ValueToken | StructuredObjectInstance | None:
+                           error_on_failure=True) -> ValueToken | StructuredObjectInstance | ParsingTracebackError:
         if not filter:
             filter = StructureFilter()
 
@@ -604,9 +620,9 @@ class StructureParser:
                 break
 
             result = self.__parse_expression_to_full_tree(tokens, context, stack, tree, filter)
-            if result is None:
+            if isinstance(result, ParsingTracebackError):
                 if error_on_failure:
-                    raise RuntimeError(f'Could not parse expression at line {tokens.peek().line}')
+                    raise ParsingTracebackError(f'Could not parse expression at line {tokens.peek().line}', result)
                 else:
                     break
             if isinstance(result, StructuredObjectInstance):
@@ -616,10 +632,10 @@ class StructureParser:
             stack.append(tree)
 
         if len(stack) > 1:
-            raise RuntimeError(f'Expression does not simplify to a singular value at line {stack[0].value.line}')
+            raise ParsingTracebackError(f'Expression does not simplify to a singular value at line {stack[0].value.line}')
 
         if len(stack) == 0:
-            return None
+            return ParsingTracebackError(f'No expression found at line {tokens.peek().line}')
 
         if isinstance(stack[0], StructuredObjectInstance):
             type_operator(stack[0], self.items, context)
@@ -656,7 +672,7 @@ class StructureParser:
                     last_expression_short and is_last,
                     expr_expr_error_on_failure)
                 if v is None:
-                    raise RuntimeError(f'Could not parse variable {n} at line {tokens.peek().line}')
+                    raise ParsingTracebackError(f'Could not parse variable {n} at line {tokens.peek().line}')
                 soi.components[n] = v
                 structure_count += 1
 
@@ -665,7 +681,7 @@ class StructureParser:
                 for token in string_tokens:
                     tn, _ = next(tokens)
                     if tn.value != token.value:
-                        raise RuntimeError(f'Expected {token.value}, got {tn.value} at line {tn.line}')
+                        raise ParsingTracebackError(f'Error on {soi.so.name} Expected {token.value}, got {tn.value} at line {tn.line}')
                 structure_count += 1
 
     def __create_structure_list(self, tokens: TokenIterator, context: ParsingContext, filter: StructureFilter | None = None, skip_first_expressions: bool = False) -> list[StructuredObjectInstance]:
@@ -759,12 +775,12 @@ class StructureParser:
             error_on_failure: bool = True,
             skip_first_expressions: bool = False,
             last_expression_short: bool = False
-    ):
+     ):
         if len(structures) == 0:
             if active_filter and not active_filter.allow_expressions:
                 if error_on_failure:
-                    raise RuntimeError(f"Invalid syntax on line {tokens.peek().line}")
-                return None
+                    raise ParsingTracebackError(f"Invalid syntax on line {tokens.peek().line}")
+                return ParsingTracebackError(f"Invalid syntax on line {tokens.peek().line}")
             result = self.__parse_expression(tokens, context, active_filter)
             return result
 
@@ -790,26 +806,32 @@ class StructureParser:
                 self.__parse_single_structure(tokens, structure, context, from_index=start_index, filter=active_filter, last_expression_short=last_expression_short)
                 working_structures.append(structure)
                 token_nums.append(tokens.index)
-            except RuntimeError as e:
-                errors_found.append(f"{structure.so.name}: {e}")
+            except ParsingTracebackError as e:
+                errors_found.append(ParsingTracebackError(f"{structure.so.name} error", e))
                 pass
 
             tokens.goto(cur_index)
 
         if len(working_structures) == 0:
+
+            if len(errors_found) == 1:
+                if error_on_failure:
+                    raise errors_found[0]
+                else:
+                    return errors_found[0]
+
+
+            total_error = "Possible Structure Errors:"
+            for e in errors_found:
+                total_error += f"\n{e.__str__(1)}"
+
             if error_on_failure:
-                if len(errors_found) == 1:
-                    raise RuntimeError(errors_found[0])
-
-                total_error = "Possible Structure Errors:"
-                for e in errors_found:
-                    total_error += f"\n\t{e}"
-                raise RuntimeError(total_error)
-
-            return None
+                raise ParsingTracebackError(total_error)
+            else:
+                return ParsingTracebackError(total_error)
 
         max_components = 0
-        max_structure: None | StructuredObjectInstance = None
+        max_structure: StructuredObjectInstance = working_structures[0]
         max_index = 0
         for i in range(len(working_structures)):
             if len(working_structures[i].components) > max_components:
@@ -862,7 +884,7 @@ class StructureParser:
                     if not typespec_matches(t, so_type):
                         if tokens.peek() is None:
                             tokens.goto(tokens.current_index() - 1)
-                        raise RuntimeError(f"Type mismatch: {t} != {so_type.name} on line {tokens.peek().line}")
+                        raise ParsingTracebackError(f"Type mismatch: {t} != {so_type.name} on line {tokens.peek().line}")
 
                 if cv.attributes:
                     so_type.attributes = {}
@@ -881,8 +903,9 @@ class StructureParser:
                     self.items,
                     context
                 )
+
                 if not check_valid_type(type_type, self.items, context, exclude=type_type.name):
-                    raise RuntimeError(f"Invalid type {type_type} for {max_soi.so.name}")
+                    raise ParsingTracebackError(f"Invalid type {type_type} for {max_soi.so.name}")
                 full_typespec = TypeSpec("$type", 1, [type_type])
 
                 # get attributes
@@ -893,11 +916,11 @@ class StructureParser:
                         item = item.value.components[part]
                     cont_context = item.created_context
                     if cont_context is None:
-                        raise RuntimeError(f"Field container {container} does not have a context defined. Change this item to have local scope.")
+                        raise ParsingTracebackError(f"Field container {container} does not have a context defined. Change this item to have local scope.")
                     for var_name, var_type in cont_context.variables.items():
                         full_typespec.attributes[var_name] = var_type
 
-                context.variables[type_type.name] = full_typespec
+                full_typespec.associated_structure = max_soi.so
 
                 context.variables[type_type.name] = full_typespec
 

@@ -1,4 +1,5 @@
-from ldm.ast.parsing_types import ParsingItems, ValueToken, StructuredObjectInstance, SOInstanceItem, ParsingContext
+from ldm.ast.parsing_types import ParsingItems, ValueToken, StructuredObjectInstance, ParsingContext, NameInstance, \
+    TypenameInstance
 from ldm.lib_config2.parsing_types import TypeSpec, ComponentType, ConfigTypeSpec
 
 
@@ -7,6 +8,11 @@ def typespec_matches(t1: TypeSpec, t2: TypeSpec) -> bool:
         return False
     if t1.num_subtypes != t2.num_subtypes:
         return False
+    if t1.associated_structure is not None and t2.associated_structure is not None:
+        if t1.associated_structure.name != t2.associated_structure.name:
+            return False
+    elif t1.associated_structure != t2.associated_structure:
+            return False
     if t1.num_subtypes == 0:
         return True
     for i in range(t1.num_subtypes):
@@ -45,7 +51,7 @@ def extract_scope_items(component: str, soi: StructuredObjectInstance):
     return variables
 
 def extract_generics(overload_type: ConfigTypeSpec, actual_type: TypeSpec, op: StructuredObjectInstance, parsing_context: ParsingContext) -> dict[str, TypeSpec] | None:
-    if isinstance(actual_type, list) and overload_type.name != '$typename_attributes':
+    if isinstance(actual_type, list) and not overload_type.name.startswith('$typename_attributes'):
         return None
 
     generics_map = {}
@@ -84,6 +90,31 @@ def extract_generics(overload_type: ConfigTypeSpec, actual_type: TypeSpec, op: S
                 return None
             return generics_map
 
+    elif overload_type.name == '$typename_attributes_map_full':
+        overload_inner_type = overload_type.subtypes[0]
+        item = extract_scope_items(overload_inner_type.name[1:], op)
+        if len(item) != 1:
+            return None
+        item = item[0]
+        item_type = parsing_context.variables[item.value.name]
+
+        keys: list[NameInstance] = extract_scope_items(overload_type.path, op)
+
+        keys_types = []
+
+        if len(keys) != len(item_type.attributes):
+            return None
+
+        for key in keys:
+            if key.value not in item_type.attributes:
+                return None
+            keys_types.append(item_type.attributes[key.value])
+
+        if not isinstance(actual_type, list) or len(actual_type) != len(keys_types):
+            return None
+
+        return generics_map
+
     else:
         if overload_type.name != actual_type.name:
             return None
@@ -118,6 +149,8 @@ def type_operator(op: StructuredObjectInstance, parsing_items: ParsingItems, par
             types[val_name] = comp.operator_fields.result_type
         elif isinstance(comp, ValueToken):
             types[val_name] = comp.var_type
+        elif isinstance(comp, TypenameInstance):
+            types[val_name] = comp.value
         elif isinstance(comp, list):
             nested_types = []
             for item in comp:
@@ -157,6 +190,26 @@ def type_operator(op: StructuredObjectInstance, parsing_items: ParsingItems, par
         if works:
             if overload.return_type.name == '$typename':
                 op.operator_fields.result_type = generics_map[overload.return_type.subtypes[0].name]
+            elif overload.return_type.name == '$typename_field':
+                inner_type = overload.return_type.subtypes[0]
+                path = overload.return_type.path.split('.')
+                item = extract_scope_items(inner_type.name[1:], op)
+                if len(item) != 1:
+                    raise ValueError(f"Could not find item {inner_type.name[1:]}")
+                item = item[0]
+                item_type = parsing_context.variables[item.value.value]
+
+                for part in path:
+                    if part.startswith('$'):
+                        items = extract_scope_items(part[1:], op)
+                        if len(items) != 1:
+                            raise ValueError(f"Could not find item {part}")
+                        item = items[0]
+                        part = item.value
+                    if part not in item_type.attributes:
+                        raise ValueError(f"Could not find attribute {part}")
+                    item_type = item_type.attributes[part]
+                op.operator_fields.result_type = item_type
             else:
                 op.operator_fields.result_type = overload.return_type
             return

@@ -93,6 +93,31 @@ class MyTestCase(unittest.TestCase):
         print('code:')
         print(code)
 
+    def test_structs(self):
+        print()
+        spec, translation = load_setup()
+        source_code = """
+        struct Point {
+            int x;
+            int y;
+        }
+        
+        Point p = Point {x=2, y=3};
+        int x = p.x;
+        """
+
+        tokenizer_items = TokenizerItems(
+            spec.primitive_types,
+            spec.expression_separators
+        )
+        tokenizer = Tokenizer(tokenizer_items)
+        tokens = tokenizer.tokenize(source_code)
+        parsing_items = ParsingItems(spec)
+        ast, _ = parse(tokens, parsing_items, tokenizer_items)
+        code = translate(ast, translation)
+        print('code:')
+        print(code)
+
 
 if __name__ == '__main__':
     unittest.main()

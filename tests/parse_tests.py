@@ -1,4 +1,7 @@
 import sys
+
+from ldm.errors.LDMError import ParsingTracebackError
+
 sys.path.append('..')
 
 from ldm.ast.parsing_types import StructuredObjectInstance
@@ -446,7 +449,7 @@ class MyTestCase(unittest.TestCase):
         try:
             parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
             assert False
-        except RuntimeError as e:
+        except ParsingTracebackError as e:
             assert True
 
         source = '''
@@ -457,7 +460,7 @@ class MyTestCase(unittest.TestCase):
         try:
             parse(tokens, ParsingItems(SPEC), TOKENIZER_ITEMS)
             assert False
-        except RuntimeError as e:
+        except ParsingTracebackError as e:
             print(e)
             assert True
 
@@ -612,16 +615,20 @@ class MyTestCase(unittest.TestCase):
     def test_create_type(self):
         spec = load_setup()
         source_code = """
-        struct Something {
+        struct Point {
             int x;
             int y;
         }
+        
+        Point p = Point {x=6, y=7};
+        
+        int x = p.x;
         """
         tokens = TOKENIZER.tokenize(source_code)
 
         ast, context = parse(tokens, ParsingItems(spec), TOKENIZER_ITEMS)
 
-        assert len(ast) == 1
+        assert len(ast) == 3
         assert isinstance(ast[0], ast_pt.StructuredObjectInstance)
 
 if __name__ == '__main__':
