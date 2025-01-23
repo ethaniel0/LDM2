@@ -300,7 +300,6 @@
       "overload_fields": ["left", "right"]
     },
     "expression_only": true
-
   },
   {
     "type": "operator_overload",
@@ -463,6 +462,39 @@
   {
     "type": "operator_overload",
     "name": "<",
+    "left": "float", "right": "float", "return": "bool"
+  },
+
+  {
+    "type": "structure",
+    "name": ">",
+    "components": [
+          {"base": "expression", "name": "left"},
+          {"base": "expression", "name": "right"}
+    ],
+    "create_operator": {
+      "overload_fields": ["left", "right"]
+    },
+    "expression_only": true
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
+    "left": "int", "right": "int", "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
+    "left": "int", "right": "float", "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
+    "left": "float", "right": "int", "return": "bool"
+  },
+  {
+    "type": "operator_overload",
+    "name": ">",
     "left": "float", "right": "float", "return": "bool"
   },
 

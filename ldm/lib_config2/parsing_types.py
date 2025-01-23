@@ -22,6 +22,31 @@ class TypeSpec:
         self.subtypes = subtypes
         self.attributes = attributes or {}
 
+    def extract_from_path(self, path: str) -> str | TypeSpec:
+        if path == "":
+            return self
+
+        path_parts = path.split('.')
+        current = self
+        for part in path_parts:
+            if part == 'name':
+                return current.name
+            elif part == 'sub':
+                sub_parts = part.split('_')
+                sub_num = int(sub_parts[1])
+                if sub_num >= len(current.subtypes):
+                    raise RuntimeError(f"Subtype {sub_num} does not exist in {current.name}")
+                current = current.subtypes[sub_num]
+            elif part == 'attr':
+                attr_parts = part.split('_')
+                attr_name = attr_parts[1]
+                if attr_name not in current.attributes:
+                    raise RuntimeError(f"Attribute {attr_name} does not exist in {current.name}")
+                current = current.attributes[attr_name]
+
+        return current
+
+
     def __eq__(self, other):
         if not isinstance(other, TypeSpec):
             return False

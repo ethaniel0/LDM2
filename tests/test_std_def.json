@@ -110,6 +110,15 @@
       "associativity": "left-to-right"
     }
   },
+  {
+    "type": "structure",
+    "name": ">",
+    "structure": "$left > $right",
+    "create_operator": {
+      "precedence": 9,
+      "associativity": "left-to-right"
+    }
+  },
 
   {
     "type": "structure",

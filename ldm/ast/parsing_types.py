@@ -178,7 +178,7 @@ class StructuredObjectInstance:
         fields = self.so.create_operator.fields
         total = 0
         for field in fields:
-            components = self.extract_from_path(field, False)
+            components = self.extract_from_path(field)
             if components is not None:
                total += 1
         return total
@@ -193,13 +193,11 @@ class StructuredObjectInstance:
                 break
         return num
 
-    def extract_from_path(self, path: str, is_type: bool):
-        if not path.startswith('$'):
-            if is_type:
-                return [string_to_typespec(path)]
-            return [path]
+    def extract_from_path(self, path: str) -> ValueError | list[SOInstanceItem] | list[str]:
+        if path.startswith('$'):
+            path = path[1:]
 
-        parts = path[1:].split('.')
+        parts = path.split('.')
         item = self.components[parts[0]]
 
         stack = [item]
@@ -210,13 +208,13 @@ class StructuredObjectInstance:
             for stack_item in stack:
                 if stack_item.item_type == ComponentType.REPEATED_ELEMENT:
                     for i in range(len(stack_item.value)):
-                        if p not in stack_item.value[i]:
-                            return None
-                        sub_item = stack_item.value[i][p]
+                        if p not in stack_item.value[i].components:
+                            return ValueError(f'item {p_num+1} ({p}) not found in {path}')
+                        sub_item = stack_item.value[i].components[p]
                         sub_items.append(sub_item)
                 else:
                     if p not in stack_item.value:
-                        return None
+                        return ValueError(f'item {p_num+1} ({p}) not found in {path}')
                     sub_item = stack_item.value[p]
                     sub_items.append(sub_item)
             stack = sub_items
@@ -224,7 +222,7 @@ class StructuredObjectInstance:
         variables = []
 
         for item in stack:
-            variables.append(item.value)
+            variables.append(item)
 
         return variables
 

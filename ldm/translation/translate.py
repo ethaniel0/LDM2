@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from ldm.lib_config2.parsing_types import ExpressionSeparator, Spec, \
+from ldm.lib_config2.parsing_types import Spec, \
     StructureSpecComponent, ComponentType
 from ldm.ast.parsing_types import (ParsingItems,
                                    ValueToken,
@@ -167,17 +167,8 @@ def translate_typename(typename: TypenameInstance, translation: TranslationItems
         elif component.component_type == TranslationStructureComponentType.Variable:
             if component.value[0] != '.':
                 raise RuntimeError('Created type translate variable must start with a . to signify fields from typename')
-            parts: list[str] = component.value[1:].split('.')
 
-            result = tn
-
-            for item in parts:
-                if item == 'name':
-                    result = result.name
-                elif item.startswith('sub'):
-                    sub_parts = item.split('_')
-                    sub_num = int(sub_parts[1])
-                    result = result.subtypes[sub_num]
+            result = tn.extract_from_path(component.value[1:])
 
             if not isinstance(result, str):
                 raise RuntimeError('Created type translate variable must end in a name component')

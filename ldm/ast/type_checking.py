@@ -20,36 +20,6 @@ def typespec_matches(t1: TypeSpec, t2: TypeSpec) -> bool:
             return False
     return True
 
-def extract_scope_items(component: str, soi: StructuredObjectInstance):
-    parts = component.split('.')
-    item = soi.components[parts[0]]
-
-    stack = [item]
-
-    for p_num in range(1, len(parts)):
-        p = parts[p_num]
-        sub_items = []
-        for stack_item in stack:
-            if stack_item.item_type == ComponentType.REPEATED_ELEMENT:
-                for i in range(len(stack_item.value)):
-                    if p not in stack_item.value[i].components:
-                        raise ValueError(f'item {p_num+1} ({p}) not found in {component}')
-                    sub_item = stack_item.value[i].components[p]
-                    sub_items.append(sub_item)
-            else:
-                if p not in stack_item.value:
-                    raise ValueError(f'item {p_num+1} ({p}) not found in {component}')
-                sub_item = stack_item.value[p]
-                sub_items.append(sub_item)
-        stack = sub_items
-
-    variables = []
-
-    for item in stack:
-        variables.append(item)
-
-    return variables
-
 def extract_generics(overload_type: ConfigTypeSpec, actual_type: TypeSpec, op: StructuredObjectInstance, parsing_context: ParsingContext) -> dict[str, TypeSpec] | None:
     if isinstance(actual_type, list) and not overload_type.name.startswith('$typename_attributes'):
         return None
@@ -66,7 +36,7 @@ def extract_generics(overload_type: ConfigTypeSpec, actual_type: TypeSpec, op: S
             generics_map[generic_name] = actual_type
     elif overload_type.name == '$typename_attributes':
         overload_inner_type = overload_type.subtypes[0]
-        item = extract_scope_items(overload_inner_type.name[1:], op)
+        item = op.extract_from_path(overload_inner_type.name)
         if len(item) != 1:
             return None
         item = item[0]
@@ -92,13 +62,13 @@ def extract_generics(overload_type: ConfigTypeSpec, actual_type: TypeSpec, op: S
 
     elif overload_type.name == '$typename_attributes_map_full':
         overload_inner_type = overload_type.subtypes[0]
-        item = extract_scope_items(overload_inner_type.name[1:], op)
+        item = op.extract_from_path(overload_inner_type.name)
         if len(item) != 1:
             return None
         item = item[0]
         item_type = parsing_context.variables[item.value.name]
 
-        keys: list[NameInstance] = extract_scope_items(overload_type.path, op)
+        keys: list[NameInstance] = op.extract_from_path(overload_type.path)
 
         keys_types = []
 
@@ -141,7 +111,7 @@ def type_operator(op: StructuredObjectInstance, parsing_items: ParsingItems, par
 
     for i, val_name in enumerate(var_components):
         if '.' in val_name:
-            comp = extract_scope_items(val_name, op)
+            comp = op.extract_from_path(val_name)
         else:
             comp = op.components[val_name]
         if isinstance(comp, StructuredObjectInstance):
@@ -193,7 +163,7 @@ def type_operator(op: StructuredObjectInstance, parsing_items: ParsingItems, par
             elif overload.return_type.name == '$typename_field':
                 inner_type = overload.return_type.subtypes[0]
                 path = overload.return_type.path.split('.')
-                item = extract_scope_items(inner_type.name[1:], op)
+                item = op.extract_from_path(inner_type.name)
                 if len(item) != 1:
                     raise ValueError(f"Could not find item {inner_type.name[1:]}")
                 item = item[0]
@@ -201,7 +171,7 @@ def type_operator(op: StructuredObjectInstance, parsing_items: ParsingItems, par
 
                 for part in path:
                     if part.startswith('$'):
-                        items = extract_scope_items(part[1:], op)
+                        items = op.extract_from_path(part)
                         if len(items) != 1:
                             raise ValueError(f"Could not find item {part}")
                         item = items[0]
